@@ -1,10 +1,9 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
 const bodyParser = require('body-parser');
 const path = require('path');
-const https = require('https');
-const fs = require('fs');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -75,20 +74,6 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// SSL-Zertifikate (ersetzen Sie diese mit Ihren eigenen Zertifikaten)
-const privateKey = fs.readFileSync('/etc/letsencrypt/live/yourdomain.com/privkey.pem', 'utf8');
-const certificate = fs.readFileSync('/etc/letsencrypt/live/yourdomain.com/cert.pem', 'utf8');
-const ca = fs.readFileSync('/etc/letsencrypt/live/yourdomain.com/chain.pem', 'utf8');
-
-const credentials = {
-  key: privateKey,
-  cert: certificate,
-  ca: ca
-};
-
-// HTTPS-Server starten
-const httpsServer = https.createServer(credentials, app);
-
-httpsServer.listen(port, () => {
-  console.log(`HTTPS-Server läuft auf https://localhost:${port}`);
+app.listen(port, '127.0.0.1', () => {
+  console.log(`Server läuft auf http://127.0.0.1:${port}`);
 });
