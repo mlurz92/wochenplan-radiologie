@@ -1,4 +1,4 @@
-/wochenplan-radiologie
+/srv/wochenplan-radiologie/
 │
 ├── public/
 │   ├── index.html
@@ -6,10 +6,13 @@
 │   ├── styles.css
 │   └── app.js
 │
+├── node_modules/  (wird durch npm install generiert)
+│
 ├── server.js
 ├── package.json
 ├── package-lock.json
 ├── .gitignore
+├── .env
+├── wochenplan.db  (wird automatisch erstellt)
 ├── start_server.sh
-├── update_app.sh
-└── wochenplan.db (wird automatisch erstellt)
+└── update_app.sh
