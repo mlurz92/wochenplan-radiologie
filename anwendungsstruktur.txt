@@ -1,0 +1,15 @@
+/wochenplan-radiologie
+│
+├── public/
+│   ├── index.html
+│   ├── editor.html
+│   ├── styles.css
+│   └── app.js
+│
+├── server.js
+├── package.json
+├── package-lock.json
+├── .gitignore
+├── start_server.sh
+├── update_app.sh
+└── wochenplan.db (wird automatisch erstellt)

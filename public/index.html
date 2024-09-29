@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wochenplan Radiologie</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="wrapper">
+        <nav>
+            <div class="nav-left">
+                <h1>Wochenplan</h1>
+                <div id="week-display">
+                    <button id="prev-week">&lt;</button>
+                    <div id="week-picker-container">
+                        <span id="calendar-icon">📅</span>
+                        <input type="text" id="week-picker" class="hidden">
+                        <span id="current-week"></span>
+                    </div>
+                    <button id="next-week">&gt;</button>
+                </div>
+            </div>
+            <div class="nav-right">
+                <button class="day-button" data-day="1">Mo</button>
+                <button class="day-button" data-day="2">Di</button>
+                <button class="day-button" data-day="3">Mi</button>
+                <button class="day-button" data-day="4">Do</button>
+                <button class="day-button" data-day="5">Fr</button>
+                <button class="day-button" data-day="6">Sa</button>
+                <button class="day-button" data-day="7">So</button>
+            </div>
+        </nav>
+
+        <div id="main-container">
+            <div id="workplan-area" role="main">
+                <div id="workplace-cards"></div>
+                <div id="additional-status-cards"></div>
+            </div>
+        </div>
+
+        <div id="button-area">
+            <button id="week-overview">Wochenübersicht</button>
+            <button id="pdf-export">Export als PDF</button>
+            <button id="edit-mode">Bearbeiten</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.15/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="/app.js"></script>
+</body>
+</html>
