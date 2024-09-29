@@ -1,7 +1,3 @@
 #!/bin/bash
-
-# Navigiere zum Projektverzeichnis
 cd /srv/wochenplan-radiologie
-
-# Starte den Node.js-Server
-npm start
+pm2 start server.js --name wochenplan-radiologie --env production
