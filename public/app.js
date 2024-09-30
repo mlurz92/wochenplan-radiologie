@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
         initializeWorkplaceCards();
         initializeStatusCards();
         initializeDragAndDrop();
+        initializeSidebar();
     } else {
         initializeReadOnlyView();
     }
@@ -49,12 +50,18 @@ function checkBrowserCompatibility() {
 // Initialisierung des Wochenpickers
 function initializeWeekPicker() {
     flatpickr("#week-picker", {
-        inline: false,
+        inline: true,
         locale: 'de',
         weekNumbers: true,
         mode: 'single',
         enableTime: false,
         dateFormat: "Y-W",
+        onOpen: function(selectedDates, dateStr, instance) {
+            instance.element.style.display = 'block';
+        },
+        onClose: function(selectedDates, dateStr, instance) {
+            instance.element.style.display = 'none';
+        },
         onChange: function(selectedDates, dateStr, instance) {
             const date = selectedDates[0];
             const week = getWeekNumber(date);
@@ -63,6 +70,11 @@ function initializeWeekPicker() {
             loadWeekPlan();
             updateUI();
         }
+    });
+
+    document.getElementById('calendar-icon').addEventListener('click', function() {
+        const weekPicker = document.getElementById('week-picker');
+        weekPicker.style.display = weekPicker.style.display === 'none' ? 'block' : 'none';
     });
 }
 
@@ -178,6 +190,19 @@ function initializeDragAndDrop() {
     });
 }
 
+// Initialisierung der Sidebar
+function initializeSidebar() {
+    const sidebar = document.getElementById('staff-pool');
+    const toggleButton = document.createElement('button');
+    toggleButton.id = 'toggle-sidebar';
+    toggleButton.textContent = '<<';
+    toggleButton.addEventListener('click', () => {
+        sidebar.classList.toggle('collapsed');
+        toggleButton.textContent = sidebar.classList.contains('collapsed') ? '>>' : '<<';
+    });
+    sidebar.prepend(toggleButton);
+}
+
 // Initialisierung der schreibgeschützten Ansicht
 function initializeReadOnlyView() {
     initializeWorkplaceCards();
@@ -211,7 +236,7 @@ function handleStaffAssignment(item, target) {
 
 // Mitarbeiter aus allen Zuweisungen entfernen
 function removeStaffFromAllAssignments(staffName) {
-    for (let day = 1; day <=7; day++) {
+    for (let day = 1; day <= 7; day++) {
         workplaces.forEach(workplace => {
             if (currentWeek[day][workplace]) {
                 currentWeek[day][workplace] = currentWeek[day][workplace].filter(staff => staff.name !== staffName);
@@ -429,8 +454,6 @@ function updateStatusCardColor(card, status, count) {
     } else if (status === 'Spätdienst') {
         if (count === 1) {
             card.classList.add('green');
-        } else {
-            card.classList.remove('green');
         }
     }
 }
@@ -552,21 +575,22 @@ function initializeEventListeners() {
     if (isEditorMode()) {
         document.getElementById('reset-day').addEventListener('click', () => {
             if (confirm('Möchten Sie den aktuellen Tag wirklich zurücksetzen?')) {
-                resetDay();
+                workplaces.forEach(workplace => currentWeek[currentDay][workplace] = []);
+                additionalStatus.forEach(status => currentWeek[currentDay][status] = []);
+                saveWeekPlan();
+                updateUI();
             }
         });
 
         document.getElementById('reset-week').addEventListener('click', () => {
             if (confirm('Möchten Sie die aktuelle Woche wirklich zurücksetzen?')) {
-                resetWeek();
+                initializeEmptyWeek();
+                saveWeekPlan();
+                updateUI();
             }
         });
 
         document.getElementById('save-plan').addEventListener('click', savePlan);
-
-        document.getElementById('back-to-viewer').addEventListener('click', () => {
-            window.location.href = 'index.html';
-        });
     } else {
         document.getElementById('edit-mode').addEventListener('click', checkPassword);
     }
@@ -723,10 +747,6 @@ function exportAsPDF() {
             doc.text(`${status}: ${names || 'keine'}`, 10, yPosition);
             yPosition += 10;
         });
-
-        // Füge Lesezeichen für jeden Tag hinzu
-        doc.setPage(day);
-        doc.addBookmark(days[day % 7], 0, -1);
     }
 
     // Wochenübersicht
@@ -751,9 +771,6 @@ function exportAsPDF() {
         body: tableData,
         startY: 30,
     });
-
-    // Füge Lesezeichen für die Wochenübersicht hinzu
-    doc.addBookmark('Wochenübersicht', doc.internal.getNumberOfPages() - 1);
 
     doc.save(`Wochenplan_KW${currentWeek.week}.pdf`);
 }
@@ -912,17 +929,49 @@ function isEditorMode() {
     return window.location.pathname.includes('editor.html');
 }
 
-// Neue Funktion zum Zurücksetzen des aktuellen Tages
-function resetDay() {
-    workplaces.forEach(workplace => currentWeek[currentDay][workplace] = []);
-    additionalStatus.forEach(status => currentWeek[currentDay][status] = []);
-    saveWeekPlan();
-    updateUI();
+// LocalStorage-Funktionen
+function saveToLocalStorage() {
+    localStorage.setItem('currentWeek', JSON.stringify(currentWeek));
 }
 
-// Neue Funktion zum Zurücksetzen der aktuellen Woche
-function resetWeek() {
-    initializeEmptyWeek();
-    saveWeekPlan();
+function loadFromLocalStorage() {
+    const storedWeek = localStorage.getItem('currentWeek');
+    if (storedWeek) {
+        currentWeek = JSON.parse(storedWeek);
+    } else {
+        initializeEmptyWeek();
+    }
+}
+
+// Aktualisierte saveWeekPlan-Funktion
+async function saveWeekPlan() {
+    saveToLocalStorage();
+    await savePlan();
+}
+
+// Aktualisierte loadWeekPlan-Funktion
+async function loadWeekPlan() {
+    loadFromLocalStorage();
+    await loadPlan();
+}
+
+// Initialisierung der Anwendung (Aufruf am Ende der Datei)
+document.addEventListener('DOMContentLoaded', initializeApp);
+
+function initializeApp() {
+    checkBrowserCompatibility();
+    initializeWeekPicker();
+    if (isEditorMode()) {
+        initializeWorkplaceCards();
+        initializeStatusCards();
+        initializeDragAndDrop();
+        initializeSidebar();
+    } else {
+        initializeReadOnlyView();
+    }
+    initializeEventListeners();
+    setCurrentWeek();
+    loadWeekPlan();
     updateUI();
+    feather.replace();
 }
