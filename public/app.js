@@ -429,6 +429,8 @@ function updateStatusCardColor(card, status, count) {
     } else if (status === 'Spätdienst') {
         if (count === 1) {
             card.classList.add('green');
+        } else {
+            card.classList.remove('green');
         }
     }
 }
@@ -550,22 +552,21 @@ function initializeEventListeners() {
     if (isEditorMode()) {
         document.getElementById('reset-day').addEventListener('click', () => {
             if (confirm('Möchten Sie den aktuellen Tag wirklich zurücksetzen?')) {
-                workplaces.forEach(workplace => currentWeek[currentDay][workplace] = []);
-                additionalStatus.forEach(status => currentWeek[currentDay][status] = []);
-                saveWeekPlan();
-                updateUI();
+                resetDay();
             }
         });
 
         document.getElementById('reset-week').addEventListener('click', () => {
             if (confirm('Möchten Sie die aktuelle Woche wirklich zurücksetzen?')) {
-                initializeEmptyWeek();
-                saveWeekPlan();
-                updateUI();
+                resetWeek();
             }
         });
 
         document.getElementById('save-plan').addEventListener('click', savePlan);
+
+        document.getElementById('back-to-viewer').addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
     } else {
         document.getElementById('edit-mode').addEventListener('click', checkPassword);
     }
@@ -722,6 +723,10 @@ function exportAsPDF() {
             doc.text(`${status}: ${names || 'keine'}`, 10, yPosition);
             yPosition += 10;
         });
+
+        // Füge Lesezeichen für jeden Tag hinzu
+        doc.setPage(day);
+        doc.addBookmark(days[day % 7], 0, -1);
     }
 
     // Wochenübersicht
@@ -746,6 +751,9 @@ function exportAsPDF() {
         body: tableData,
         startY: 30,
     });
+
+    // Füge Lesezeichen für die Wochenübersicht hinzu
+    doc.addBookmark('Wochenübersicht', doc.internal.getNumberOfPages() - 1);
 
     doc.save(`Wochenplan_KW${currentWeek.week}.pdf`);
 }
@@ -902,4 +910,19 @@ function checkPassword() {
 // Hilfsfunktion zur Überprüfung des Editor-Modus
 function isEditorMode() {
     return window.location.pathname.includes('editor.html');
+}
+
+// Neue Funktion zum Zurücksetzen des aktuellen Tages
+function resetDay() {
+    workplaces.forEach(workplace => currentWeek[currentDay][workplace] = []);
+    additionalStatus.forEach(status => currentWeek[currentDay][status] = []);
+    saveWeekPlan();
+    updateUI();
+}
+
+// Neue Funktion zum Zurücksetzen der aktuellen Woche
+function resetWeek() {
+    initializeEmptyWeek();
+    saveWeekPlan();
+    updateUI();
 }
