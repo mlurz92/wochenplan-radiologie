@@ -1,7 +1,11 @@
 // app.js
 
 // Globale Variablen
-let currentWeek = {};
+let currentWeek = {
+    year: new Date().getFullYear(),
+    week: getWeekNumber(new Date()),
+    1: {}, 2: {}, 3: {}, 4: {}, 5: {}, 6: {}, 7: {}
+};
 let currentDay = new Date().getDay();
 if (currentDay === 0) currentDay = 7; // Sonntag als 7 behandeln
 const workplaces = ['CT', 'MRT', 'Angiographie', 'Mammographie', 'Ultraschall', 'Kinder'];
@@ -26,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     initializeEventListeners();
     setCurrentWeek();
-    loadWeekPlan();
+    loadPlan();
     updateUI();
 });
 
@@ -60,7 +64,7 @@ function initializeWeekPicker() {
             const year = date.getFullYear();
             const week = getWeekNumber(date);
             setCurrentWeek(year, week);
-            loadWeekPlan();
+            loadPlan();
             updateUI();
         }
     });
@@ -330,8 +334,23 @@ function initializeEmptyWeek() {
 }
 
 // Wochenplan speichern
-async function saveWeekPlan() {
-    await savePlan();
+async function savePlan() {
+    const planData = JSON.stringify(currentWeek);
+    try {
+        const response = await fetch('/api/save-plan', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: planData,
+        });
+        if (!response.ok) {
+            throw new Error('Fehler beim Speichern des Wochenplans');
+        }
+    } catch (error) {
+        console.error('Fehler beim Speichern:', error);
+        throw error;
+    }
 }
 
 // UI aktualisieren
@@ -643,7 +662,7 @@ function changeWeek(offset) {
     const newWeek = getWeekNumber(date);
     const newYear = date.getFullYear();
     setCurrentWeek(newYear, newWeek);
-    loadWeekPlan();
+    loadPlan();
 }
 
 // Wochenübersicht anzeigen
@@ -1005,26 +1024,6 @@ async function savePlan() {
     } catch (error) {
         console.error('Fehler beim Speichern:', error);
         throw error;
-    }
-}
-
-// Neue Funktion zum Laden des Wochenplans
-async function loadPlan() {
-    try {
-        const response = await fetch(`/api/load-plan?year=${currentWeek.year}&week=${currentWeek.week}`);
-        if (response.ok) {
-            const planData = await response.json();
-            currentWeek = planData;
-            updateUI();
-        } else if (response.status === 404) {
-            initializeEmptyWeek();
-            updateUI();
-        } else {
-            throw new Error('Fehler beim Laden des Wochenplans');
-        }
-    } catch (error) {
-        console.error('Fehler beim Laden:', error);
-        alert('Fehler beim Laden des Wochenplans. Bitte versuchen Sie es erneut.');
     }
 }
 
