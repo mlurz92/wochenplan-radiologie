@@ -1,3 +1,5 @@
+// app.js
+
 // Globale Variablen
 let currentWeek = {};
 let currentDay = new Date().getDay();
@@ -647,7 +649,6 @@ function updateCardColor(card, workplace, faCount, aaCount) {
         const newYear = date.getFullYear();
         setCurrentWeek(newYear, newWeek);
         loadWeekPlan();
-        updateUI();
     }
     
     // Wochenübersicht anzeigen
@@ -676,7 +677,7 @@ function updateCardColor(card, workplace, faCount, aaCount) {
             for (let day = 1; day <= 7; day++) {
                 overviewWindow.document.write('<td>');
                 const assignments = getStaffAssignmentsForDay(staffName, day);
-                overviewWindow.document.write(assignments.join(', ') || '&nbsp;');
+                overviewWindow.document.write(assignments.join('/') || '&nbsp;');
                 overviewWindow.document.write('</td>');
             }
             overviewWindow.document.write('</tr>');
@@ -734,7 +735,7 @@ function updateCardColor(card, workplace, faCount, aaCount) {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF('landscape', 'mm', 'a4');
     
-        const days = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+        const days = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
         const dateRange = getDateRange(currentWeek.year, currentWeek.week);
     
         // Funktion zum Konvertieren von RGBA zu RGB
@@ -789,27 +790,27 @@ function updateCardColor(card, workplace, faCount, aaCount) {
             doc.text(`Wochenplan für ${days[day - 1]}, ${formattedDate}`, 10, 25);
     
             let yPosition = 35;
-        let xPosition = 10;
-
-        // Funktion zum Zeichnen einer Karte
+            let xPosition = 10;
+    
+            // Funktion zum Zeichnen einer Karte
         function drawCard(title, staffList, color) {
-            const cardWidth = 90;
-            const cardHeight = 40;
+            const cardWidth = 70;
+            const cardHeight = 35;
             
             const rgbaColor = parseRGBA(color);
             const rgbColor = rgba2rgb(rgbaColor);
             doc.setFillColor(rgbColor.r, rgbColor.g, rgbColor.b);
             doc.roundedRect(xPosition, yPosition, cardWidth, cardHeight, 3, 3, 'F');
             
-            doc.setFontSize(10);
+            doc.setFontSize(9);
             doc.setTextColor(0);
-            doc.text(title, xPosition + 3, yPosition + 7);
+            doc.text(title, xPosition + 3, yPosition + 6);
             
-            doc.setFontSize(8);
-            let staffY = yPosition + 14;
+            doc.setFontSize(7);
+            let staffY = yPosition + 12;
             staffList.forEach(staff => {
                 doc.text(`${staff.type === 'fa' ? 'FA: ' : 'AA: '}${staff.name}`, xPosition + 3, staffY);
-                staffY += 5;
+                staffY += 4;
             });
 
             if (xPosition + 2 * cardWidth > 287) {
@@ -868,7 +869,7 @@ function updateCardColor(card, workplace, faCount, aaCount) {
     // Wochenübersicht
     doc.addPage();
     doc.setFontSize(16);
-    doc.text(`Wochenübersicht KW ${currentWeek.week} (${dateRange})`, 10, 20);
+    doc.text(`Wochenübersicht KW ${currentWeek.week}, ${currentWeek.year} (${dateRange})`, 10, 20);
 
     const tableData = [];
     const allStaff = [...staffMembers.fa, ...staffMembers.aa];
@@ -897,7 +898,7 @@ function updateCardColor(card, workplace, faCount, aaCount) {
         doc.link(275, 0, 22, 15, { pageNumber: doc.getNumberOfPages() });
     }
 
-    doc.save(`Wochenplan_KW${currentWeek.week}.pdf`);
+    doc.save(`Wochenplan_KW${currentWeek.week}_${currentWeek.year}.pdf`);
 }
 
 // Wochenende oder Feiertag prüfen
