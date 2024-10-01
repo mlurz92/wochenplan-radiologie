@@ -874,7 +874,7 @@ function exportAsPDF() {
 
         // Reset position für Statuskarten
         xPosition = 10;
-        yPosition += 30; // Verringerter Abstand zwischen Arbeitsplatzkarten und Statuskarten
+        yPosition += 10; // Verringerter Abstand zwischen Arbeitsplatzkarten und Statuskarten
 
         // Zeichne Statuskarten in 4x2 Anordnung
         additionalStatus.forEach((status, index) => {
