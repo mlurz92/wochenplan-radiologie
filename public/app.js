@@ -681,30 +681,23 @@ function showWeekOverview() {
 
 // Mitarbeiterzuweisungen für einen Tag abrufen
 function getStaffAssignmentsForDay(staffName, day) {
-    let workplaceAssignments = [];
-    let statusAssignments = [];
+    let assignments = [];
 
     workplaces.forEach(workplace => {
         const staffList = currentWeek[day][workplace] || [];
         if (staffList.some(staff => staff.name === staffName)) {
-            workplaceAssignments.push(getAbbreviation(workplace));
+            assignments.push(getAbbreviation(workplace));
         }
     });
 
     additionalStatus.forEach(status => {
         const staffList = currentWeek[day][status] || [];
         if (staffList.some(staff => staff.name === staffName)) {
-            statusAssignments.push(getAbbreviation(status));
+            assignments.push(getAbbreviation(status));
         }
     });
 
-    if (workplaceAssignments.length > 0 && statusAssignments.length > 0) {
-        return `${workplaceAssignments.join('/')}/${statusAssignments.join(',')}`;
-    } else if (workplaceAssignments.length > 0) {
-        return workplaceAssignments.join('/');
-    } else {
-        return statusAssignments.join(',');
-    }
+    return assignments;
 }
 
 // Abkürzungen
@@ -875,7 +868,7 @@ function exportAsPDF() {
         const row = [staffName];
         for (let day = 1; day <= 7; day++) {
             const assignments = getStaffAssignmentsForDay(staffName, day);
-            row.push(assignments.join(', ') || ' ');
+            row.push(assignments.length > 0 ? assignments.join('/') : ' ');
         }
         tableData.push(row);
     });
