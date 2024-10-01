@@ -9,8 +9,6 @@
     --staff-item-background: rgba(224, 231, 255, 0.1);
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
-
 body {
     font-family: 'Roboto', sans-serif;
     background-color: var(--background-color);
@@ -108,17 +106,6 @@ button:hover {
     overflow-y: auto;
     padding: 20px;
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-    transition: width 0.3s ease;
-}
-
-#staff-pool.collapsed {
-    width: 30px;
-}
-
-#toggle-sidebar {
-    width: 100%;
-    text-align: center;
-    margin-bottom: 10px;
 }
 
 #staff-pool h2 {
@@ -214,7 +201,7 @@ button:hover {
 }
 
 #button-area {
-    margin-top: 20px;
+    margin-top: 0px;
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
@@ -223,21 +210,21 @@ button:hover {
 }
 
 @keyframes glowRed {
-    0% { box-shadow: 0 0 5px 2px rgba(255, 105, 107, 0.6); }
-    50% { box-shadow: 0 0 10px 5px rgba(255, 105, 107, 0.8); }
-    100% { box-shadow: 0 0 5px 2px rgba(255, 105, 107, 0.6); }
+    0% { box-shadow: 0 5px 15px rgba(255, 105, 107, 0.6); }
+    50% { box-shadow: 5px 5px 15px rgba(255, 105, 107, 0.8); }
+    100% { box-shadow: 0 5px 15px rgba(255, 105, 107, 0.6); }
 }
 
 @keyframes glowYellow {
-    0% { box-shadow: 0 0 5px 2px rgba(255, 247, 123, 0.6); }
-    50% { box-shadow: 0 0 10px 5px rgba(255, 247, 123, 0.8); }
-    100% { box-shadow: 0 0 5px 2px rgba(255, 247, 123, 0.6); }
+    0% { box-shadow: 0 5px 15px rgba(255, 247, 123, 0.6); }
+    50% { box-shadow: 5px 5px 15px rgba(255, 247, 123, 0.8); }
+    100% { box-shadow: 0 5px 15px rgba(255, 247, 123, 0.6); }
 }
 
 @keyframes glowGreen {
-    0% { box-shadow: 0 0 5px 2px rgba(151, 255, 109, 0.6); }
-    50% { box-shadow: 0 0 10px 5px rgba(151, 255, 109, 0.8); }
-    100% { box-shadow: 0 0 5px 2px rgba(151, 255, 109, 0.6); }
+    0% { box-shadow: 0 5px 15px rgba(151, 255, 109, 0.6); }
+    50% { box-shadow: 5px 5px 15px rgba(151, 255, 109, 0.8); }
+    100% { box-shadow: 0 5px 15px rgba(151, 255, 109, 0.6); }
 }
 
 .workplace-card.red, .status-card.red {
@@ -253,10 +240,6 @@ button:hover {
 .workplace-card.green, .status-card.green {
     animation: glowGreen 3s infinite;
     background-color: rgba(151, 255, 109, 0.2);
-}
-
-.status-card .staff-list-items {
-    text-align: center;
 }
 
 /* Responsive Design */
@@ -328,53 +311,4 @@ button:hover {
         padding: 6px 12px;
         font-size: 12px;
     }
-}
-
-/* Flatpickr Anpassungen */
-.flatpickr-calendar {
-    background-color: var(--card-color);
-    color: var(--text-color);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.flatpickr-day {
-    color: var(--text-color);
-}
-
-.flatpickr-day.selected,
-.flatpickr-day.startRange,
-.flatpickr-day.endRange,
-.flatpickr-day.selected.inRange,
-.flatpickr-day.startRange.inRange,
-.flatpickr-day.endRange.inRange,
-.flatpickr-day.selected:focus,
-.flatpickr-day.startRange:focus,
-.flatpickr-day.endRange:focus {
-    background-color: var(--accent-color);
-    border-color: var(--accent-color);
-}
-
-.flatpickr-day.inRange,
-.flatpickr-day.prevMonthDay.inRange,
-.flatpickr-day.nextMonthDay.inRange,
-.flatpickr-day.today.inRange,
-.flatpickr-day.prevMonthDay.today.inRange,
-.flatpickr-day.nextMonthDay.today.inRange,
-.flatpickr-day:hover,
-.flatpickr-day.prevMonthDay:hover,
-.flatpickr-day.nextMonthDay:hover,
-.flatpickr-day:focus,
-.flatpickr-day.prevMonthDay:focus,
-.flatpickr-day.nextMonthDay:focus {
-    background-color: var(--accent-color);
-    border-color: var(--accent-color);
-}
-
-.flatpickr-current-month .flatpickr-monthDropdown-months,
-.flatpickr-current-month input.cur-year {
-    color: var(--text-color);
-}
-
-.flatpickr-weekday {
-    color: var(--text-color);
 }
