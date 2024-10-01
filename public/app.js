@@ -1,5 +1,3 @@
-// app.js
-
 // Globale Variablen
 let currentWeek = {};
 let currentDay = new Date().getDay();
@@ -55,9 +53,7 @@ function initializeWeekPicker() {
         weekNumbers: true,
         mode: 'single',
         enableTime: false,
-        dateFormat: "W, Y",
-        altInput: true,
-        altFormat: "W, Y",
+        dateFormat: "Y-W",
         onChange: function(selectedDates, dateStr, instance) {
             const date = selectedDates[0];
             const week = getWeekNumber(date);
@@ -65,12 +61,6 @@ function initializeWeekPicker() {
             setCurrentWeek(year, week);
             loadWeekPlan();
             updateUI();
-        },
-        onReady: function(selectedDates, dateStr, instance) {
-            const weekPickerInput = document.querySelector('.flatpickr-input');
-            if (weekPickerInput) {
-                weekPickerInput.setAttribute('readonly', 'readonly');
-            }
         }
     });
 }
@@ -88,18 +78,19 @@ function getWeekNumber(d) {
 function setCurrentWeek(year = new Date().getFullYear(), week = getWeekNumber(new Date())) {
     currentWeek.year = year;
     currentWeek.week = week;
-    updateWeekDisplay();
+    document.getElementById('current-week').textContent = `KW ${week}, ${year} (${getDateRange(year, week)})`;
 }
 
 // Datum Range berechnen
 function getDateRange(year, week) {
-    const firstDay = getDateForWeekAndDay(year, week, 1); // Montag
-    const lastDay = getDateForWeekAndDay(year, week, 7); // Sonntag
+    const firstDay = getDateOfISOWeek(week, year);
+    const lastDay = new Date(firstDay);
+    lastDay.setDate(lastDay.getDate() + 6);
     const options = { day: 'numeric', month: 'numeric' };
     return `${firstDay.toLocaleDateString('de-DE', options)} - ${lastDay.toLocaleDateString('de-DE', options)}`;
 }
 
-// Datum für ISO-Woche und Jahr berechnen
+// Datum für eine bestimmte ISO-Woche und Jahr berechnen
 function getDateOfISOWeek(w, y) {
     const simple = new Date(y, 0, 1 + (w - 1) * 7);
     const dow = simple.getDay();
@@ -113,15 +104,10 @@ function getDateOfISOWeek(w, y) {
 
 // Datum für Woche und Tag berechnen
 function getDateForWeekAndDay(year, week, day) {
-    const simple = new Date(year, 0, 1 + (week - 1) * 7);
-    const dow = simple.getDay();
-    const ISOweekStart = simple;
-    if (dow <= 4)
-        ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
-    else
-        ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
-    ISOweekStart.setDate(ISOweekStart.getDate() + day - 1);
-    return ISOweekStart;
+    const firstDayOfWeek = getDateOfISOWeek(week, year);
+    const result = new Date(firstDayOfWeek);
+    result.setDate(result.getDate() + day - 1);
+    return result;
 }
 
 // Initialisierung von Arbeitsplatzkarten
@@ -152,7 +138,7 @@ function initializeStatusCards() {
         card.className = 'status-card';
         card.setAttribute('data-status', status);
         card.innerHTML = `
-            <h2>${status} ${['Urlaub', 'Weiterbildung', 'Krank'].includes(status) ? '<span class="counter">(0)</span>' : ''}</h2>
+            <h2>${status} ${['Urlaub', 'Weiterbildung', 'Krank', 'Sonstiges'].includes(status) ? '<span class="counter">(0)</span>' : ''}</h2>
             <ul class="staff-list-items"></ul>
         `;
         statusCards.appendChild(card);
@@ -411,397 +397,398 @@ function updateCardColor(card, workplace, faCount, aaCount) {
                 card.classList.add('red');
             }
             break;
-        case 'MRT':
-            if (faCount >= 1 && (faCount + aaCount) >= 2) {
-                card.classList.add('green');
-            } else {
-                card.classList.add('red');
-            }
-            break;
-        case 'Angiographie':
-        case 'Mammographie':
-            if (faCount >= 1 && aaCount >= 1) {
-                card.classList.add('green');
-            } else if (faCount >= 1) {
-                card.classList.add('yellow');
-            } else {
-                card.classList.add('red');
-            }
-            break;
-        case 'Ultraschall':
-            if ((faCount + aaCount) >= 1) {
-                card.classList.add('green');
-            } else {
-                card.classList.add('red');
-            }
-            break;
-        case 'Kinder':
-            if (faCount >= 1) {
-                card.classList.add('green');
-            } else {
-                card.classList.add('red');
-            }
-            break;
-    }
-}
-
-// Kartenfarbe für Zusatzstatuskarten aktualisieren
-function updateStatusCardColor(card, status, count) {
-    card.classList.remove('red', 'green');
-
-    if (['Dienst', 'Hintergrund', 'Dienstfrei'].includes(status)) {
-        if (count === 1) {
-            card.classList.add('green');
-        } else {
-            card.classList.add('red');
-        }
-    } else if (status === 'Spätdienst') {
-        if (count === 1) {
-            card.classList.add('green');
+            case 'MRT':
+                if (faCount >= 1 && (faCount + aaCount) >= 2) {
+                    card.classList.add('green');
+                } else {
+                    card.classList.add('red');
+                }
+                break;
+            case 'Angiographie':
+            case 'Mammographie':
+                if (faCount >= 1 && aaCount >= 1) {
+                    card.classList.add('green');
+                } else if (faCount >= 1) {
+                    card.classList.add('yellow');
+                } else {
+                    card.classList.add('red');
+                }
+                break;
+            case 'Ultraschall':
+                if ((faCount + aaCount) >= 1) {
+                    card.classList.add('green');
+                } else {
+                    card.classList.add('red');
+                }
+                break;
+            case 'Kinder':
+                if (faCount >= 1) {
+                    card.classList.add('green');
+                } else {
+                    card.classList.add('red');
+                }
+                break;
         }
     }
-}
-
-// Mitarbeiter-Element erstellen
-function createStaffElement(staff) {
-    const li = document.createElement('li');
-    li.className = 'staff-member';
-    li.innerHTML = `<span class="staff-name">${staff.name}</span> ${isEditorMode() ? '<button class="remove-btn" title="Entfernen">&times;</button>' : ''}`;
-    li.setAttribute('data-staff-type', staff.type);
-
-    if (isEditorMode()) {
-        li.querySelector('.remove-btn').addEventListener('click', (event) => {
-            event.stopPropagation(); // Verhindert Bubble-up des Events
-            const card = li.closest('.workplace-card, .status-card');
-            const workplace = card.getAttribute('data-workplace');
-            const status = card.getAttribute('data-status');
-            removeStaffFromAssignment(staff.name, workplace, status);
-            savePlan();
-            updateUI();
-        });
+    
+    // Kartenfarbe für Zusatzstatuskarten aktualisieren
+    function updateStatusCardColor(card, status, count) {
+        card.classList.remove('red', 'green');
+    
+        if (['Dienst', 'Hintergrund', 'Dienstfrei'].includes(status)) {
+            if (count === 1) {
+                card.classList.add('green');
+            } else {
+                card.classList.add('red');
+            }
+        } else if (status === 'Spätdienst') {
+            if (count === 1) {
+                card.classList.add('green');
+            }
+        }
     }
-
-    return li;
-}
-
-// Mitarbeiter-Pool aktualisieren
-function updateStaffPool() {
-    const faPool = document.querySelector('#fa-pool .staff-list-items');
-    const aaPool = document.querySelector('#aa-pool .staff-list-items');
-
-    faPool.innerHTML = '';
-    aaPool.innerHTML = '';
-
-    staffMembers.fa.forEach(name => {
+    
+    // Mitarbeiter-Element erstellen
+    function createStaffElement(staff) {
         const li = document.createElement('li');
         li.className = 'staff-member';
-        li.innerHTML = `<span class="staff-name">${name}</span>`;
-        li.setAttribute('data-staff-type', 'fa');
-        if (isStaffAssigned(name)) {
-            li.classList.add('assigned');
+        li.innerHTML = `<span class="staff-name">${staff.name}</span> ${isEditorMode() ? '<button class="remove-btn" title="Entfernen">&times;</button>' : ''}`;
+        li.setAttribute('data-staff-type', staff.type);
+    
+        if (isEditorMode()) {
+            li.querySelector('.remove-btn').addEventListener('click', (event) => {
+                event.stopPropagation(); // Verhindert Bubble-up des Events
+                const card = li.closest('.workplace-card, .status-card');
+                const workplace = card.getAttribute('data-workplace');
+                const status = card.getAttribute('data-status');
+                removeStaffFromAssignment(staff.name, workplace, status);
+                savePlan();
+                updateUI();
+            });
         }
-        faPool.appendChild(li);
-    });
-
-    staffMembers.aa.forEach(name => {
-        const li = document.createElement('li');
-        li.className = 'staff-member';
-        li.innerHTML = `<span class="staff-name">${name}</span>`;
-        li.setAttribute('data-staff-type', 'aa');
-        if (isStaffAssigned(name)) {
-            li.classList.add('assigned');
-        }
-        aaPool.appendChild(li);
-    });
-}
-
-// Überprüfen, ob Mitarbeiter zugewiesen ist
-function isStaffAssigned(name) {
-    let assigned = false;
-
-    workplaces.forEach(workplace => {
-        const staffList = currentWeek[currentDay][workplace] || [];
-        if (staffList.some(staff => staff.name === name)) {
-            assigned = true;
-        }
-    });
-
-    additionalStatus.forEach(status => {
-        const staffList = currentWeek[currentDay][status] || [];
-        if (staffList.some(staff => staff.name === name)) {
-            assigned = true;
-        }
-    });
-
-    return assigned;
-}
-
-// Funktion für die Tastatur-Navigation
-function handleKeyNavigation(event) {
-    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-        event.preventDefault();
-        const direction = event.key === 'ArrowLeft' ? -1 : 1;
-        changeDay(direction);
+    
+        return li;
     }
-}
-
-// Funktion zum Wechseln des Tages
-function changeDay(direction) {
-    let newDay = currentDay + direction;
-    if (newDay < 1) newDay = 7;
-    if (newDay > 7) newDay = 1;
-    currentDay = newDay;
-    updateUI();
-    updateDayButtons();
-}
-
-// Tagesbuttons aktualisieren
-function updateDayButtons() {
-    const buttons = document.querySelectorAll('.day-button');
-    buttons.forEach(button => {
-        const day = parseInt(button.getAttribute('data-day'));
-        if (day === currentDay) {
-            button.classList.add('active');
-            button.setAttribute('aria-current', 'date');
+    
+    // Mitarbeiter-Pool aktualisieren
+    function updateStaffPool() {
+        const faPool = document.querySelector('#fa-pool .staff-list-items');
+        const aaPool = document.querySelector('#aa-pool .staff-list-items');
+    
+        faPool.innerHTML = '';
+        aaPool.innerHTML = '';
+    
+        staffMembers.fa.forEach(name => {
+            const li = document.createElement('li');
+            li.className = 'staff-member';
+            li.innerHTML = `<span class="staff-name">${name}</span>`;
+            li.setAttribute('data-staff-type', 'fa');
+            if (isStaffAssigned(name)) {
+                li.classList.add('assigned');
+            }
+            faPool.appendChild(li);
+        });
+    
+        staffMembers.aa.forEach(name => {
+            const li = document.createElement('li');
+            li.className = 'staff-member';
+            li.innerHTML = `<span class="staff-name">${name}</span>`;
+            li.setAttribute('data-staff-type', 'aa');
+            if (isStaffAssigned(name)) {
+                li.classList.add('assigned');
+            }
+            aaPool.appendChild(li);
+        });
+    }
+    
+    // Überprüfen, ob Mitarbeiter zugewiesen ist
+    function isStaffAssigned(name) {
+        let assigned = false;
+    
+        workplaces.forEach(workplace => {
+            const staffList = currentWeek[currentDay][workplace] || [];
+            if (staffList.some(staff => staff.name === name)) {
+                assigned = true;
+            }
+        });
+    
+        additionalStatus.forEach(status => {
+            const staffList = currentWeek[currentDay][status] || [];
+            if (staffList.some(staff => staff.name === name)) {
+                assigned = true;
+            }
+        });
+    
+        return assigned;
+    }
+    
+    // Funktion für die Tastatur-Navigation
+    function handleKeyNavigation(event) {
+        if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+            event.preventDefault();
+            const direction = event.key === 'ArrowLeft' ? -1 : 1;
+            changeDay(direction);
+        }
+    }
+    
+    // Funktion zum Wechseln des Tages
+    function changeDay(direction) {
+        let newDay = currentDay + direction;
+        if (newDay < 1) newDay = 7;
+        if (newDay > 7) newDay = 1;
+        currentDay = newDay;
+        updateUI();
+        updateDayButtons();
+    }
+    
+    // Tagesbuttons aktualisieren
+    function updateDayButtons() {
+        const buttons = document.querySelectorAll('.day-button');
+        buttons.forEach(button => {
+            const day = parseInt(button.getAttribute('data-day'));
+            if (day === currentDay) {
+                button.classList.add('active');
+                button.setAttribute('aria-current', 'date');
+            } else {
+                button.classList.remove('active');
+                button.removeAttribute('aria-current');
+            }
+        });
+    }
+    
+    // Event Listener initialisieren
+    function initializeEventListeners() {
+        document.getElementById('prev-week').addEventListener('click', () => {
+            changeWeek(-1);
+        });
+    
+        document.getElementById('next-week').addEventListener('click', () => {
+            changeWeek(1);
+        });
+    
+        const dayButtons = document.querySelectorAll('.day-button');
+        dayButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                currentDay = parseInt(button.getAttribute('data-day'));
+                updateUI();
+            });
+        });
+    
+        document.addEventListener('keydown', handleKeyNavigation);
+    
+        document.getElementById('week-overview').addEventListener('click', () => {
+            showWeekOverview();
+        });
+    
+        document.getElementById('pdf-export').addEventListener('click', () => {
+            exportAsPDF();
+        });
+    
+        if (isEditorMode()) {
+            document.getElementById('reset-day').addEventListener('click', () => {
+                if (confirm('Möchten Sie den aktuellen Tag wirklich zurücksetzen?')) {
+                    workplaces.forEach(workplace => currentWeek[currentDay][workplace] = []);
+                    additionalStatus.forEach(status => currentWeek[currentDay][status] = []);
+                    savePlan();
+                    updateUI();
+                }
+            });
+    
+            document.getElementById('reset-week').addEventListener('click', () => {
+                if (confirm('Möchten Sie die aktuelle Woche wirklich zurücksetzen?')) {
+                    initializeEmptyWeek();
+                    savePlan();
+                    updateUI();
+                }
+            });
+    
+            document.getElementById('save-plan').addEventListener('click', async () => {
+                try {
+                    await savePlan();
+                    alert('Wochenplan erfolgreich gespeichert!');
+                } catch (error) {
+                    console.error('Fehler beim Speichern:', error);
+                    alert('Fehler beim Speichern des Wochenplans. Bitte versuchen Sie es erneut.');
+                }
+            });
         } else {
-            button.classList.remove('active');
-            button.removeAttribute('aria-current');
+            document.getElementById('edit-mode').addEventListener('click', checkPassword);
         }
-    });
-}
-
-// Event Listener initialisieren
-function initializeEventListeners() {
-    document.getElementById('prev-week').addEventListener('click', () => {
-        changeWeek(-1);
-    });
-
-    document.getElementById('next-week').addEventListener('click', () => {
-        changeWeek(1);
-    });
-
-    const dayButtons = document.querySelectorAll('.day-button');
-    dayButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            currentDay = parseInt(button.getAttribute('data-day'));
-            updateUI();
+    
+        const calendarIcon = document.getElementById('calendar-icon');
+        const weekPicker = document.getElementById('week-picker');
+    
+        calendarIcon.addEventListener('mouseenter', () => {
+            weekPicker.classList.remove('hidden');
         });
-    });
-
-    document.addEventListener('keydown', handleKeyNavigation);
-
-    document.getElementById('week-overview').addEventListener('click', () => {
-        showWeekOverview();
-    });
-
-    document.getElementById('pdf-export').addEventListener('click', () => {
-        exportAsPDF();
-    });
-
-    if (isEditorMode()) {
-        document.getElementById('reset-day').addEventListener('click', () => {
-            if (confirm('Möchten Sie den aktuellen Tag wirklich zurücksetzen?')) {
-                workplaces.forEach(workplace => currentWeek[currentDay][workplace] = []);
-                additionalStatus.forEach(status => currentWeek[currentDay][status] = []);
-                savePlan();
-                updateUI();
-            }
+    
+        calendarIcon.addEventListener('mouseleave', () => {
+            setTimeout(() => {
+                if (!weekPicker.matches(':hover')) {
+                    weekPicker.classList.add('hidden');
+                }
+            }, 200);
         });
-
-        document.getElementById('reset-week').addEventListener('click', () => {
-            if (confirm('Möchten Sie die aktuelle Woche wirklich zurücksetzen?')) {
-                initializeEmptyWeek();
-                savePlan();
-                updateUI();
-            }
+    
+        weekPicker.addEventListener('mouseenter', () => {
+            weekPicker.classList.remove('hidden');
         });
-
-        document.getElementById('save-plan').addEventListener('click', async () => {
-            try {
-                await savePlan();
-                alert('Wochenplan erfolgreich gespeichert!');
-            } catch (error) {
-                console.error('Fehler beim Speichern:', error);
-                alert('Fehler beim Speichern des Wochenplans. Bitte versuchen Sie es erneut.');
-            }
+    
+        weekPicker.addEventListener('mouseleave', () => {
+            weekPicker.classList.add('hidden');
         });
-    } else {
-        document.getElementById('edit-mode').addEventListener('click', checkPassword);
     }
-
-    const calendarIcon = document.getElementById('calendar-icon');
-    const weekPicker = document.getElementById('week-picker');
-
-    calendarIcon.addEventListener('mouseenter', () => {
-        weekPicker.classList.remove('hidden');
-    });
-
-    calendarIcon.addEventListener('mouseleave', () => {
-        setTimeout(() => {
-            if (!weekPicker.matches(':hover')) {
-                weekPicker.classList.add('hidden');
-            }
-        }, 200);
-    });
-
-    weekPicker.addEventListener('mouseenter', () => {
-        weekPicker.classList.remove('hidden');
-    });
-
-    weekPicker.addEventListener('mouseleave', () => {
-        weekPicker.classList.add('hidden');
-    });
-}
-
-// Woche ändern
-function changeWeek(offset) {
-    const date = getDateOfISOWeek(currentWeek.week, currentWeek.year);
-    date.setDate(date.getDate() + offset * 7);
-    const newWeek = getWeekNumber(date);
-    const newYear = date.getFullYear();
-    setCurrentWeek(newYear, newWeek);
-    loadWeekPlan();
-    updateUI();
-}
-
-// Wochenübersicht anzeigen
-function showWeekOverview() {
-    let overviewWindow = window.open('', 'Wochenübersicht', 'width=1000,height=800');
-    overviewWindow.document.write('<html><head><title>Wochenübersicht</title>');
-    overviewWindow.document.write('<style>');
-    overviewWindow.document.write('body { font-family: Roboto, sans-serif; padding: 20px; }');
-    overviewWindow.document.write('table { width: 100%; border-collapse: collapse; }');
-    overviewWindow.document.write('th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }');
-    overviewWindow.document.write('th { background-color: #f0f4f8; }');
-    overviewWindow.document.write('</style>');
-    overviewWindow.document.write('</head><body>');
-    overviewWindow.document.write(`<h1>Wochenübersicht KW ${currentWeek.week}, ${currentWeek.year}</h1>`);
-    overviewWindow.document.write('<table>');
-    overviewWindow.document.write('<tr><th>Mitarbeiter</th>');
-    const days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
-    days.forEach(day => {
-        overviewWindow.document.write(`<th>${day}</th>`);
-    });
-    overviewWindow.document.write('</tr>');
-
-    const allStaff = [...staffMembers.fa, ...staffMembers.aa];
-    allStaff.forEach(staffName => {
-        overviewWindow.document.write(`<tr><td>${staffName}</td>`);
-        for (let day = 1; day <= 7; day++) {
-            overviewWindow.document.write('<td>');
-            const assignments = getStaffAssignmentsForDay(staffName, day);
-            overviewWindow.document.write(assignments.join(', ') || '&nbsp;');
-            overviewWindow.document.write('</td>');
-        }
+    
+    // Woche ändern
+    function changeWeek(offset) {
+        const date = getDateOfISOWeek(currentWeek.week, currentWeek.year);
+        date.setDate(date.getDate() + offset * 7);
+        const newWeek = getWeekNumber(date);
+        const newYear = date.getFullYear();
+        setCurrentWeek(newYear, newWeek);
+        loadWeekPlan();
+        updateUI();
+    }
+    
+    // Wochenübersicht anzeigen
+    function showWeekOverview() {
+        let overviewWindow = window.open('', 'Wochenübersicht', 'width=1000,height=800');
+        overviewWindow.document.write('<html><head><title>Wochenübersicht</title>');
+        overviewWindow.document.write('<style>');
+        overviewWindow.document.write('body { font-family: Roboto, sans-serif; padding: 20px; }');
+        overviewWindow.document.write('table { width: 100%; border-collapse: collapse; }');
+        overviewWindow.document.write('th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }');
+        overviewWindow.document.write('th { background-color: #f0f4f8; }');
+        overviewWindow.document.write('</style>');
+        overviewWindow.document.write('</head><body>');
+        overviewWindow.document.write(`<h1>Wochenübersicht KW ${currentWeek.week}, ${currentWeek.year}</h1>`);
+        overviewWindow.document.write('<table>');
+        overviewWindow.document.write('<tr><th>Mitarbeiter</th>');
+        const days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+        days.forEach(day => {
+            overviewWindow.document.write(`<th>${day}</th>`);
+        });
         overviewWindow.document.write('</tr>');
-    });
-
-    overviewWindow.document.write('</table>');
-    overviewWindow.document.write('</body></html>');
-    overviewWindow.document.close();
-}
-
-// Mitarbeiterzuweisungen für einen Tag abrufen
-function getStaffAssignmentsForDay(staffName, day) {
-    let assignments = [];
-
-    workplaces.forEach(workplace => {
-        const staffList = currentWeek[day][workplace] || [];
-        if (staffList.some(staff => staff.name === staffName)) {
-            assignments.push(getAbbreviation(workplace));
-        }
-    });
-
-    additionalStatus.forEach(status => {
-        const staffList = currentWeek[day][status] || [];
-        if (staffList.some(staff => staff.name === staffName)) {
-            assignments.push(getAbbreviation(status));
-        }
-    });
-
-    return assignments;
-}
-
-// Abkürzungen
-function getAbbreviation(name) {
-    const abbreviations = {
-        'Angiographie': 'AN',
-        'CT': 'CT',
-        'MRT': 'MR',
-        'Mammographie': 'MG',
-        'Ultraschall': 'US',
-        'Kinder': 'KUS',
-        'Dienst': 'D',
-        'Hintergrund': 'HG',
-        'Dienstfrei': 'F',
-        'Spätdienst': 'S',
-        'Krank': 'K',
-        'Urlaub': 'U',
-        'Weiterbildung': 'WB'
-    };
-    return abbreviations[name] || name;
-}
-
-// Export als PDF
-function exportAsPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('landscape', 'mm', 'a4');
-
-    const days = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
-    const dateRange = getDateRange(currentWeek.year, currentWeek.week);
-
-    // Funktion zum Konvertieren von RGBA zu RGB
-    function rgba2rgb(rgba, bgColor = {r:255, g:255, b:255}) {
-        const a = rgba.a !== undefined ? rgba.a : 1;
-        return {
-            r: Math.round((1 - a) * bgColor.r + a * rgba.r),
-            g: Math.round((1 - a) * bgColor.g + a * rgba.g),
-            b: Math.round((1 - a) * bgColor.b + a * rgba.b)
-        };
-    }
-
-    // Funktion zum Parsen von RGBA-Strings
-    function parseRGBA(rgba) {
-        const parts = rgba.substring(rgba.indexOf('(') + 1, rgba.lastIndexOf(')')).split(/,\s*/);
-        return {
-            r: parseInt(parts[0]),
-            g: parseInt(parts[1]),
-            b: parseInt(parts[2]),
-            a: parseFloat(parts[3])
-        };
-    }
-
-    // Funktion zum Erstellen einer Seite für jeden Tag
-    function createDayPage(day) {
-        if (day > 1) doc.addPage();
-
-        // Obere Leiste
-        doc.setFillColor(200, 200, 200);
-        doc.rect(0, 0, 297, 15, 'F');
-        doc.setFontSize(12);
-        doc.setTextColor(0);
-        let xOffset = 10;
-        days.forEach((dayName, index) => {
-            if (index + 1 === day) {
-                doc.setFillColor(150, 150, 150);
-                doc.rect(xOffset - 2, 0, doc.getTextWidth(dayName) + 4, 15, 'F');
-                doc.setTextColor(255);
-            } else {
-                doc.setTextColor(0);
-                doc.link(xOffset - 2, 0, doc.getTextWidth(dayName) + 4, 15, { pageNumber: index + 1 });
+    
+        const allStaff = [...staffMembers.fa, ...staffMembers.aa];
+        allStaff.forEach(staffName => {
+            overviewWindow.document.write(`<tr><td>${staffName}</td>`);
+            for (let day = 1; day <= 7; day++) {
+                overviewWindow.document.write('<td>');
+                const assignments = getStaffAssignmentsForDay(staffName, day);
+                overviewWindow.document.write(assignments.join(', ') || '&nbsp;');
+                overviewWindow.document.write('</td>');
             }
-            doc.text(dayName, xOffset, 10);
-            xOffset += doc.getTextWidth(dayName) + 10;
+            overviewWindow.document.write('</tr>');
         });
-
-        const currentDate = getDateForWeekAndDay(currentWeek.year, currentWeek.week, day);
-        const formattedDate = currentDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-
-        doc.setFontSize(16);
-        doc.setTextColor(0);
-        doc.text(`Wochenplan für ${days[day % 7]}, ${formattedDate}`, 10, 25);
-
-        let yPosition = 35;
+    
+        overviewWindow.document.write('</table>');
+        overviewWindow.document.write('</body></html>');
+        overviewWindow.document.close();
+    }
+    
+    // Mitarbeiterzuweisungen für einen Tag abrufen
+    function getStaffAssignmentsForDay(staffName, day) {
+        let assignments = [];
+    
+        workplaces.forEach(workplace => {
+            const staffList = currentWeek[day][workplace] || [];
+            if (staffList.some(staff => staff.name === staffName)) {
+                assignments.push(getAbbreviation(workplace));
+            }
+        });
+    
+        additionalStatus.forEach(status => {
+            const staffList = currentWeek[day][status] || [];
+            if (staffList.some(staff => staff.name === staffName)) {
+                assignments.push(getAbbreviation(status));
+            }
+        });
+    
+        return assignments;
+    }
+    
+    // Abkürzungen
+    function getAbbreviation(name) {
+        const abbreviations = {
+            'Angiographie': 'AN',
+            'CT': 'CT',
+            'MRT': 'MR',
+            'Mammographie': 'MG',
+            'Ultraschall': 'US',
+            'Kinder': 'KUS',
+            'Dienst': 'D',
+            'Hintergrund': 'HG',
+            'Dienstfrei': 'F',
+            'Spätdienst': 'S',
+            'Krank': 'K',
+            'Urlaub': 'U',
+            'Weiterbildung': 'WB',
+            'Sonstiges': 'SO'
+        };
+        return abbreviations[name] || name;
+    }
+    
+    // Export als PDF
+    function exportAsPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('landscape', 'mm', 'a4');
+    
+        const days = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+        const dateRange = getDateRange(currentWeek.year, currentWeek.week);
+    
+        // Funktion zum Konvertieren von RGBA zu RGB
+        function rgba2rgb(rgba, bgColor = {r:255, g:255, b:255}) {
+            const a = rgba.a !== undefined ? rgba.a : 1;
+            return {
+                r: Math.round((1 - a) * bgColor.r + a * rgba.r),
+                g: Math.round((1 - a) * bgColor.g + a * rgba.g),
+                b: Math.round((1 - a) * bgColor.b + a * rgba.b)
+            };
+        }
+    
+        // Funktion zum Parsen von RGBA-Strings
+        function parseRGBA(rgba) {
+            const parts = rgba.substring(rgba.indexOf('(') + 1, rgba.lastIndexOf(')')).split(/,\s*/);
+            return {
+                r: parseInt(parts[0]),
+                g: parseInt(parts[1]),
+                b: parseInt(parts[2]),
+                a: parseFloat(parts[3])
+            };
+        }
+    
+        // Funktion zum Erstellen einer Seite für jeden Tag
+        function createDayPage(day) {
+            if (day > 1) doc.addPage();
+    
+            // Obere Leiste
+            doc.setFillColor(200, 200, 200);
+            doc.rect(0, 0, 297, 15, 'F');
+            doc.setFontSize(12);
+            doc.setTextColor(0);
+            let xOffset = 10;
+            days.forEach((dayName, index) => {
+                if (index + 1 === day) {
+                    doc.setFillColor(150, 150, 150);
+                    doc.rect(xOffset - 2, 0, doc.getTextWidth(dayName) + 4, 15, 'F');
+                    doc.setTextColor(255);
+                } else {
+                    doc.setTextColor(0);
+                    doc.link(xOffset - 2, 0, doc.getTextWidth(dayName) + 4, 15, { pageNumber: index + 1 });
+                }
+                doc.text(dayName, xOffset, 10);
+                xOffset += doc.getTextWidth(dayName) + 10;
+            });
+    
+            const currentDate = getDateForWeekAndDay(currentWeek.year, currentWeek.week, day);
+            const formattedDate = currentDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    
+            doc.setFontSize(16);
+            doc.setTextColor(0);
+            doc.text(`Wochenplan für ${days[day - 1]}, ${formattedDate}`, 10, 25);
+    
+            let yPosition = 35;
         let xPosition = 10;
 
         // Funktion zum Zeichnen einer Karte
@@ -976,19 +963,6 @@ async function isWeekendOrHoliday(date) {
     return false;
 }
 
-// Entfernen eines Mitarbeiters aus einer Zuordnung
-function removeStaffFromAssignment(staffName, workplace = null, status = null) {
-    if (workplace) {
-        if (currentWeek[currentDay][workplace]) {
-            currentWeek[currentDay][workplace] = currentWeek[currentDay][workplace].filter(staff => staff.name !== staffName);
-        }
-    } else if (status) {
-        if (currentWeek[currentDay][status]) {
-            currentWeek[currentDay][status] = currentWeek[currentDay][status].filter(staff => staff.name !== staffName);
-        }
-    }
-}
-
 // Aktualisierung der Kartenhintergründe basierend auf den Farben
 function updateCardBackgrounds() {
     const allCards = document.querySelectorAll('.workplace-card, .status-card');
@@ -1053,9 +1027,4 @@ function checkPassword() {
     } else {
         alert('Falsches Passwort!');
     }
-}
-
-// Hilfsfunktion zur Überprüfung des Editor-Modus
-function isEditorMode() {
-    return window.location.pathname.includes('editor.html');
 }
