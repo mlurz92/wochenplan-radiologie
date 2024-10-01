@@ -204,8 +204,7 @@ function handleStaffAssignment(item, target) {
             assignStaffToWorkplace(staffName, staffType, targetType);
         }
 
-        item.remove();
-        savePlan(); // Stumme Speicherung ohne Benachrichtigung
+        savePlan();
         updateUI();
     }
 }
@@ -418,8 +417,12 @@ function createStaffElement(staff) {
     li.setAttribute('data-staff-type', staff.type);
 
     if (isEditorMode()) {
-        li.querySelector('.remove-btn').addEventListener('click', () => {
-            removeStaffFromAssignment(staff.name);
+        li.querySelector('.remove-btn').addEventListener('click', (event) => {
+            event.stopPropagation(); // Verhindert Bubble-up des Events
+            const card = li.closest('.workplace-card, .status-card');
+            const workplace = card.getAttribute('data-workplace');
+            const status = card.getAttribute('data-status');
+            removeStaffFromAssignment(staff.name, workplace, status);
             savePlan();
             updateUI();
         });
@@ -822,9 +825,7 @@ function removeStaffFromAssignment(staffName, workplace = null, status = null) {
         if (currentWeek[currentDay][workplace]) {
             currentWeek[currentDay][workplace] = currentWeek[currentDay][workplace].filter(staff => staff.name !== staffName);
         }
-    }
-
-    if (status) {
+    } else if (status) {
         if (currentWeek[currentDay][status]) {
             currentWeek[currentDay][status] = currentWeek[currentDay][status].filter(staff => staff.name !== staffName);
         }
