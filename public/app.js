@@ -177,6 +177,30 @@ function initializeDragAndDrop() {
     });
 }
 
+// Initialisierung eines Item-Drag
+function initializeDragForItem(item) {
+    new Sortable.create(item.parentElement, {
+        group: {
+            name: 'shared',
+            pull: true,
+            put: true
+        },
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        onAdd: function(evt) {
+            handleStaffAssignment(evt.item, evt.to);
+        },
+        onUpdate: function(evt) {
+            updateUI();
+        },
+        onRemove: function(evt) {
+            updateUI();
+        },
+        fallbackOnBody: true,
+        swapThreshold: 0.65,
+    });
+}
+
 // Initialisierung der schreibgeschützten Ansicht
 function initializeReadOnlyView() {
     initializeWorkplaceCards();
@@ -196,12 +220,20 @@ function handleStaffAssignment(item, target) {
     if (targetCard) {
         const targetType = targetCard.getAttribute('data-workplace') || targetCard.getAttribute('data-status');
 
-        removeStaffFromAllAssignments(staffName);
-
         if (additionalStatus.includes(targetType)) {
             assignStaffToStatus(staffName, staffType, targetType);
         } else {
             assignStaffToWorkplace(staffName, staffType, targetType);
+        }
+
+        if (item.closest('#staff-pool')) {
+            // Wenn das Element aus dem Mitarbeiter-Pool kommt, erstellen Sie ein neues Element
+            const newItem = item.cloneNode(true);
+            target.appendChild(newItem);
+            initializeDragForItem(newItem);
+        } else {
+            // Wenn das Element von einer anderen Karte kommt, verschieben Sie es
+            target.appendChild(item);
         }
 
         savePlan();
@@ -210,19 +242,17 @@ function handleStaffAssignment(item, target) {
 }
 
 // Mitarbeiter aus allen Zuweisungen entfernen
-function removeStaffFromAllAssignments(staffName) {
-    for (let day = 1; day <= 7; day++) {
-        workplaces.forEach(workplace => {
-            if (currentWeek[day] && currentWeek[day][workplace]) {
-                currentWeek[day][workplace] = currentWeek[day][workplace].filter(staff => staff.name !== staffName);
-            }
-        });
-        additionalStatus.forEach(status => {
-            if (currentWeek[day] && currentWeek[day][status]) {
-                currentWeek[day][status] = currentWeek[day][status].filter(staff => staff.name !== staffName);
-            }
-        });
+function removeStaffFromAssignment(staffName, workplace = null, status = null) {
+    if (workplace) {
+        if (currentWeek[currentDay][workplace]) {
+            currentWeek[currentDay][workplace] = currentWeek[currentDay][workplace].filter(staff => staff.name !== staffName);
+        }
+    } else if (status) {
+        if (currentWeek[currentDay][status]) {
+            currentWeek[currentDay][status] = currentWeek[currentDay][status].filter(staff => staff.name !== staffName);
+        }
     }
+    updateUI();
 }
 
 // Mitarbeiter zu Arbeitsplatz zuweisen
@@ -243,6 +273,7 @@ function assignStaffToStatus(staffName, staffType, status) {
     }
 
     if (['Dienst', 'Hintergrund', 'Dienstfrei', 'Spätdienst'].includes(status)) {
+        // Für diese Status nur eine Zuweisung erlauben
         currentWeek[currentDay][status] = [{ name: staffName, type: staffType }];
     } else {
         const exists = currentWeek[currentDay][status].some(staff => staff.name === staffName);
