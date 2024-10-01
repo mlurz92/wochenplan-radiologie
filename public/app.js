@@ -745,6 +745,7 @@ function getAbbreviation(name) {
 }
 
 // Export als PDF
+// Export als PDF
 function exportAsPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('landscape', 'mm', 'a4');
@@ -873,7 +874,7 @@ function exportAsPDF() {
 
         // Reset position für Statuskarten
         xPosition = 10;
-        yPosition += 50;
+        yPosition += 30; // Verringerter Abstand zwischen Arbeitsplatzkarten und Statuskarten
 
         // Zeichne Statuskarten in 4x2 Anordnung
         additionalStatus.forEach((status, index) => {
@@ -921,8 +922,8 @@ function exportAsPDF() {
         doc.setPage(i);
         doc.setFontSize(12);
         doc.setTextColor(0);
-        doc.text('Übersicht', 280, 10);
-        doc.link(275, 0, 22, 15, { pageNumber: doc.getNumberOfPages() });
+        doc.text('Wochenübersicht', 245, 10); // Position des Links angepasst
+        doc.link(240, 0, 50, 15, { pageNumber: doc.getNumberOfPages() });
     }
 
     doc.save(`Wochenplan_KW${currentWeek.week}_${currentWeek.year}.pdf`);
