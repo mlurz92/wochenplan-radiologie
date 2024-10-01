@@ -15,12 +15,13 @@ const staffMembers = {
 document.addEventListener('DOMContentLoaded', () => {
     checkBrowserCompatibility();
     initializeWeekPicker();
-    initializeWorkplaceCards();
-    initializeStatusCards();
     if (isEditorMode()) {
+        initializeWorkplaceCards();
+        initializeStatusCards();
         initializeDragAndDrop();
-        updateStaffPool();
     } else {
+        initializeWorkplaceCards();
+        initializeStatusCards();
         initializeReadOnlyView();
     }
     initializeEventListeners();
@@ -60,6 +61,7 @@ function initializeWeekPicker() {
             const week = getWeekNumber(date);
             setCurrentWeek(year, week);
             loadWeekPlan();
+            updateUI();
         }
     });
 
@@ -70,16 +72,12 @@ function initializeWeekPicker() {
 
 // Kalenderwoche berechnen
 function getWeekNumber(d) {
-    // Kopie des Datumsobjekts erstellen
-    const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-    // Donnerstag in aktueller Woche ermitteln
-    const dayNum = date.getUTCDay() || 7;
-    date.setUTCDate(date.getUTCDate() + 4 - dayNum);
-    // Erste Jahreswoche ermitteln
-    const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-    // Kalenderwoche berechnen
-    const weekNo = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
-    return weekNo;
+    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    const weekNum = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    return weekNum;
 }
 
 // Aktuelle Woche setzen
@@ -87,8 +85,6 @@ function setCurrentWeek(year = new Date().getFullYear(), week = getWeekNumber(ne
     currentWeek.year = year;
     currentWeek.week = week;
     document.getElementById('current-week').textContent = `KW ${week}, ${year} (${getDateRange(year, week)})`;
-    currentDay = 1; // Auf Montag setzen
-    updateUI();
 }
 
 // Datum Range berechnen
@@ -224,7 +220,6 @@ function initializeReadOnlyView() {
     if (staffPool) {
         staffPool.style.display = 'none';
     }
-    updateUI();
 }
 
 // Funktion zur korrekten Einordnung des Mitarbeiters
@@ -535,7 +530,7 @@ function handleKeyNavigation(event) {
     if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
         event.preventDefault();
         const direction = event.key === 'ArrowLeft' ? -1 : 1;
-        changeWeek(direction);
+        changeDay(direction);
     }
 }
 
@@ -722,7 +717,7 @@ function exportAsPDF() {
     const dateRange = getDateRange(currentWeek.year, currentWeek.week);
 
     // Funktion zum Konvertieren von RGBA zu RGB
-    function rgba2rgb(rgba, bgColor = { r: 255, g: 255, b: 255 }) {
+    function rgba2rgb(rgba, bgColor = {r:255, g:255, b:255}) {
         const a = rgba.a !== undefined ? rgba.a : 1;
         return {
             r: Math.round((1 - a) * bgColor.r + a * rgba.r),
@@ -813,13 +808,13 @@ function exportAsPDF() {
             }
         }
 
-        // Zeichne Arbeitsplatzkarten (3x2 Anordnung)
+        // Zeichne Arbeitsplatzkarten
         workplaces.forEach((workplace, index) => {
             const staffList = currentWeek[day][workplace] || [];
             const faCount = staffList.filter(s => s.type === 'fa').length;
             const aaCount = staffList.filter(s => s.type === 'aa').length;
             let color;
-            switch (workplace) {
+            switch(workplace) {
                 case 'CT':
                     color = (faCount >= 2 || (faCount >= 1 && (faCount + aaCount) >= 3)) ? 'rgba(151, 255, 109, 0.2)' : 'rgba(255, 105, 107, 0.2)';
                     break;
@@ -838,20 +833,18 @@ function exportAsPDF() {
                     break;
             }
             drawCard(workplace, staffList, color, true);
-            // Anpassung der Positionierung für 3x2 Layout
+
             if ((index + 1) % 3 === 0) {
                 xPosition = 10;
                 yPosition += 40;
-            } else {
-                xPosition += 90;
             }
         });
 
         // Reset position for status cards
         xPosition = 10;
-        yPosition += 10;
+        yPosition += 40;
 
-        // Zeichne Statuskarten (4x2 Anordnung)
+        // Zeichne Statuskarten
         additionalStatus.forEach((status, index) => {
             const staffList = currentWeek[day][status] || [];
             let color = 'rgba(200, 200, 200, 0.2)';
@@ -861,12 +854,10 @@ function exportAsPDF() {
                 color = staffList.length === 1 ? 'rgba(151, 255, 109, 0.2)' : 'rgba(200, 200, 200, 0.2)';
             }
             drawCard(status, staffList, color, false);
-            // Anpassung der Positionierung für 4x2 Layout
+
             if ((index + 1) % 4 === 0) {
                 xPosition = 10;
                 yPosition += 30;
-            } else {
-                xPosition += 70;
             }
         });
     }
