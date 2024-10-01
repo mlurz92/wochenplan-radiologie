@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeEventListeners();
     setCurrentWeek();
     loadWeekPlan();
+    updateUI();
 });
 
 // Überprüfung, ob im Editor-Modus
@@ -72,7 +73,8 @@ function getWeekNumber(d) {
     // Kopie des Datumsobjekts erstellen
     const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
     // Donnerstag in aktueller Woche ermitteln
-    date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
+    const dayNum = date.getUTCDay() || 7;
+    date.setUTCDate(date.getUTCDate() + 4 - dayNum);
     // Erste Jahreswoche ermitteln
     const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
     // Kalenderwoche berechnen
@@ -192,7 +194,291 @@ function initializeDragAndDrop() {
     });
 }
 
-// Initialisierung des Mitarbeiter-Pools
+// Initialisierung eines Item-Drag
+function initializeDragForItem(item) {
+    new Sortable.create(item.parentElement, {
+        group: {
+            name: 'shared',
+            pull: true,
+            put: true
+        },
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        onAdd: function(evt) {
+            handleStaffAssignment(evt.item, evt.to);
+        },
+        onUpdate: function(evt) {
+            updateUI();
+        },
+        onRemove: function(evt) {
+            updateUI();
+        },
+        fallbackOnBody: true,
+        swapThreshold: 0.65,
+    });
+}
+
+// Initialisierung der schreibgeschützten Ansicht
+function initializeReadOnlyView() {
+    const staffPool = document.getElementById('staff-pool');
+    if (staffPool) {
+        staffPool.style.display = 'none';
+    }
+    updateUI();
+}
+
+// Funktion zur korrekten Einordnung des Mitarbeiters
+function handleStaffAssignment(item, target) {
+    const staffName = item.querySelector('.staff-name').textContent;
+    const staffType = item.getAttribute('data-staff-type');
+    const targetCard = target.closest('.workplace-card, .status-card');
+
+    if (targetCard) {
+        const targetType = targetCard.getAttribute('data-workplace') || targetCard.getAttribute('data-status');
+
+        if (additionalStatus.includes(targetType)) {
+            assignStaffToStatus(staffName, staffType, targetType);
+        } else {
+            assignStaffToWorkplace(staffName, staffType, targetType);
+        }
+
+        if (item.closest('#staff-pool')) {
+            // Wenn das Element aus dem Mitarbeiter-Pool kommt, erstellen Sie ein neues Element
+            const newItem = item.cloneNode(true);
+            target.appendChild(newItem);
+            initializeDragForItem(newItem);
+        } else {
+            // Wenn das Element von einer anderen Karte kommt, verschieben Sie es
+            target.appendChild(item);
+        }
+
+        savePlan();
+        updateUI();
+    }
+}
+
+// Mitarbeiter aus allen Zuweisungen entfernen
+function removeStaffFromAssignment(staffName, workplace = null, status = null) {
+    if (workplace) {
+        if (currentWeek[currentDay][workplace]) {
+            currentWeek[currentDay][workplace] = currentWeek[currentDay][workplace].filter(staff => staff.name !== staffName);
+        }
+    } else if (status) {
+        if (currentWeek[currentDay][status]) {
+            currentWeek[currentDay][status] = currentWeek[currentDay][status].filter(staff => staff.name !== staffName);
+        }
+    }
+    updateUI();
+}
+
+// Mitarbeiter zu Arbeitsplatz zuweisen
+function assignStaffToWorkplace(staffName, staffType, workplace) {
+    if (!currentWeek[currentDay][workplace]) {
+        currentWeek[currentDay][workplace] = [];
+    }
+    const exists = currentWeek[currentDay][workplace].some(staff => staff.name === staffName);
+    if (!exists) {
+        currentWeek[currentDay][workplace].push({ name: staffName, type: staffType });
+    }
+}
+
+// Mitarbeiter zu Zusatzstatus zuweisen
+function assignStaffToStatus(staffName, staffType, status) {
+    if (!currentWeek[currentDay][status]) {
+        currentWeek[currentDay][status] = [];
+    }
+
+    if (['Dienst', 'Hintergrund', 'Dienstfrei', 'Spätdienst'].includes(status)) {
+        // Für diese Status nur eine Zuweisung erlauben
+        currentWeek[currentDay][status] = [{ name: staffName, type: staffType }];
+    } else {
+        const exists = currentWeek[currentDay][status].some(staff => staff.name === staffName);
+        if (!exists) {
+            currentWeek[currentDay][status].push({ name: staffName, type: staffType });
+        }
+    }
+}
+
+// Wochenplan laden
+async function loadWeekPlan() {
+    await loadPlan();
+}
+
+// Leere Woche initialisieren
+function initializeEmptyWeek() {
+    currentWeek = {
+        year: currentWeek.year,
+        week: currentWeek.week
+    };
+    for (let i = 1; i <= 7; i++) {
+        currentWeek[i] = {};
+        workplaces.forEach(workplace => currentWeek[i][workplace] = []);
+        additionalStatus.forEach(status => currentWeek[i][status] = []);
+    }
+}
+
+// Wochenplan speichern
+async function saveWeekPlan() {
+    await savePlan();
+}
+
+// UI aktualisieren
+function updateUI() {
+    updateWorkplaceCards();
+    updateStatusCards();
+    if (isEditorMode()) {
+        updateStaffPool();
+    }
+    updateDayButtons();
+    checkWeekendOrHoliday();
+    updateCardBackgrounds();
+}
+
+// Arbeitsplatzkarten aktualisieren
+function updateWorkplaceCards() {
+    workplaces.forEach(workplace => {
+        const card = document.querySelector(`.workplace-card[data-workplace="${workplace}"]`);
+        const staffList = currentWeek[currentDay][workplace] || [];
+        const faList = card.querySelector('.staff-list-items.fa');
+        const aaList = card.querySelector('.staff-list-items.aa');
+        const totalCounter = card.querySelector('h2 .counter');
+        const faCounter = card.querySelector('h3:nth-of-type(1) .counter');
+        const aaCounter = card.querySelector('h3:nth-of-type(2) .counter');
+
+        faList.innerHTML = '';
+        aaList.innerHTML = '';
+
+        let faCount = 0;
+        let aaCount = 0;
+
+        staffList.forEach(staff => {
+            const li = createStaffElement(staff);
+            if (staff.type === 'fa') {
+                faList.appendChild(li);
+                faCount++;
+            } else {
+                aaList.appendChild(li);
+                aaCount++;
+            }
+        });
+
+        totalCounter.textContent = `(${faCount + aaCount})`;
+        faCounter.textContent = `(${faCount})`;
+        aaCounter.textContent = `(${aaCount})`;
+
+        updateCardColor(card, workplace, faCount, aaCount);
+    });
+}
+
+// Zusatzstatuskarten aktualisieren
+function updateStatusCards() {
+    additionalStatus.forEach(status => {
+        const card = document.querySelector(`.status-card[data-status="${status}"]`);
+        const staffList = currentWeek[currentDay][status] || [];
+        const ul = card.querySelector('.staff-list-items');
+        const counter = card.querySelector('h2 .counter');
+
+        ul.innerHTML = '';
+
+        staffList.forEach(staff => {
+            const li = createStaffElement(staff);
+            ul.appendChild(li);
+        });
+
+        if (counter) {
+            counter.textContent = `(${staffList.length})`;
+        }
+
+        updateStatusCardColor(card, status, staffList.length);
+    });
+}
+
+// Kartenfarbe für Arbeitsplatzkarten aktualisieren
+function updateCardColor(card, workplace, faCount, aaCount) {
+    card.classList.remove('red', 'yellow', 'green');
+
+    switch (workplace) {
+        case 'CT':
+            if (faCount >= 2 || (faCount >= 1 && (faCount + aaCount) >= 3)) {
+                card.classList.add('green');
+            } else {
+                card.classList.add('red');
+            }
+            break;
+        case 'MRT':
+            if (faCount >= 1 && (faCount + aaCount) >= 2) {
+                card.classList.add('green');
+            } else {
+                card.classList.add('red');
+            }
+            break;
+        case 'Angiographie':
+        case 'Mammographie':
+            if (faCount >= 1 && aaCount >= 1) {
+                card.classList.add('green');
+            } else if (faCount >= 1) {
+                card.classList.add('yellow');
+            } else {
+                card.classList.add('red');
+            }
+            break;
+        case 'Ultraschall':
+            if ((faCount + aaCount) >= 1) {
+                card.classList.add('green');
+            } else {
+                card.classList.add('red');
+            }
+            break;
+        case 'Kinder':
+            if (faCount >= 1) {
+                card.classList.add('green');
+            } else {
+                card.classList.add('red');
+            }
+            break;
+    }
+}
+
+// Kartenfarbe für Zusatzstatuskarten aktualisieren
+function updateStatusCardColor(card, status, count) {
+    card.classList.remove('red', 'green');
+
+    if (['Dienst', 'Hintergrund', 'Dienstfrei'].includes(status)) {
+        if (count === 1) {
+            card.classList.add('green');
+        } else {
+            card.classList.add('red');
+        }
+    } else if (status === 'Spätdienst') {
+        if (count === 1) {
+            card.classList.add('green');
+        }
+    }
+}
+
+// Mitarbeiter-Element erstellen
+function createStaffElement(staff) {
+    const li = document.createElement('li');
+    li.className = 'staff-member';
+    li.innerHTML = `<span class="staff-name">${staff.name}</span> ${isEditorMode() ? '<button class="remove-btn" title="Entfernen">&times;</button>' : ''}`;
+    li.setAttribute('data-staff-type', staff.type);
+
+    if (isEditorMode()) {
+        li.querySelector('.remove-btn').addEventListener('click', (event) => {
+            event.stopPropagation(); // Verhindert Bubble-up des Events
+            const card = li.closest('.workplace-card, .status-card');
+            const workplace = card.getAttribute('data-workplace');
+            const status = card.getAttribute('data-status');
+            removeStaffFromAssignment(staff.name, workplace, status);
+            savePlan();
+            updateUI();
+        });
+    }
+
+    return li;
+}
+
+// Mitarbeiter-Pool aktualisieren
 function updateStaffPool() {
     const faPool = document.querySelector('#fa-pool .staff-list-items');
     const aaPool = document.querySelector('#aa-pool .staff-list-items');
@@ -223,18 +509,211 @@ function updateStaffPool() {
     });
 }
 
-// Initialisierung der schreibgeschützten Ansicht
-function initializeReadOnlyView() {
-    const staffPool = document.getElementById('staff-pool');
-    if (staffPool) {
-        staffPool.style.display = 'none';
-    }
-    updateUI();
+// Überprüfen, ob Mitarbeiter zugewiesen ist
+function isStaffAssigned(name) {
+    let assigned = false;
+
+    workplaces.forEach(workplace => {
+        const staffList = currentWeek[currentDay][workplace] || [];
+        if (staffList.some(staff => staff.name === name)) {
+            assigned = true;
+        }
+    });
+
+    additionalStatus.forEach(status => {
+        const staffList = currentWeek[currentDay][status] || [];
+        if (staffList.some(staff => staff.name === name)) {
+            assigned = true;
+        }
+    });
+
+    return assigned;
 }
 
-// Restlicher Code bleibt unverändert (Funktionen wie handleStaffAssignment, removeStaffFromAssignment, assignStaffToWorkplace, assignStaffToStatus, updateUI, etc.)
+// Funktion für die Tastatur-Navigation
+function handleKeyNavigation(event) {
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        event.preventDefault();
+        const direction = event.key === 'ArrowLeft' ? -1 : 1;
+        changeWeek(direction);
+    }
+}
 
-// Anpassungen im PDF-Export
+// Funktion zum Wechseln des Tages
+function changeDay(direction) {
+    let newDay = currentDay + direction;
+    if (newDay < 1) newDay = 7;
+    if (newDay > 7) newDay = 1;
+    currentDay = newDay;
+    updateUI();
+    updateDayButtons();
+}
+
+// Tagesbuttons aktualisieren
+function updateDayButtons() {
+    const buttons = document.querySelectorAll('.day-button');
+    buttons.forEach(button => {
+        const day = parseInt(button.getAttribute('data-day'));
+        if (day === currentDay) {
+            button.classList.add('active');
+            button.setAttribute('aria-current', 'date');
+        } else {
+            button.classList.remove('active');
+            button.removeAttribute('aria-current');
+        }
+    });
+}
+
+// Event Listener initialisieren
+function initializeEventListeners() {
+    document.getElementById('prev-week').addEventListener('click', () => {
+        changeWeek(-1);
+    });
+
+    document.getElementById('next-week').addEventListener('click', () => {
+        changeWeek(1);
+    });
+
+    const dayButtons = document.querySelectorAll('.day-button');
+    dayButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            currentDay = parseInt(button.getAttribute('data-day'));
+            updateUI();
+        });
+    });
+
+    document.addEventListener('keydown', handleKeyNavigation);
+
+    document.getElementById('week-overview').addEventListener('click', () => {
+        showWeekOverview();
+    });
+
+    document.getElementById('pdf-export').addEventListener('click', () => {
+        exportAsPDF();
+    });
+
+    if (isEditorMode()) {
+        document.getElementById('reset-day').addEventListener('click', () => {
+            if (confirm('Möchten Sie den aktuellen Tag wirklich zurücksetzen?')) {
+                workplaces.forEach(workplace => currentWeek[currentDay][workplace] = []);
+                additionalStatus.forEach(status => currentWeek[currentDay][status] = []);
+                savePlan();
+                updateUI();
+            }
+        });
+
+        document.getElementById('reset-week').addEventListener('click', () => {
+            if (confirm('Möchten Sie die aktuelle Woche wirklich zurücksetzen?')) {
+                initializeEmptyWeek();
+                savePlan();
+                updateUI();
+            }
+        });
+
+        document.getElementById('save-plan').addEventListener('click', async () => {
+            try {
+                await savePlan();
+                alert('Wochenplan erfolgreich gespeichert!');
+            } catch (error) {
+                console.error('Fehler beim Speichern:', error);
+                alert('Fehler beim Speichern des Wochenplans. Bitte versuchen Sie es erneut.');
+            }
+        });
+    } else {
+        document.getElementById('edit-mode').addEventListener('click', checkPassword);
+    }
+}
+
+// Woche ändern
+function changeWeek(offset) {
+    const date = getDateOfISOWeek(currentWeek.year, currentWeek.week);
+    date.setDate(date.getDate() + offset * 7);
+    const newWeek = getWeekNumber(date);
+    const newYear = date.getFullYear();
+    setCurrentWeek(newYear, newWeek);
+    loadWeekPlan();
+}
+
+// Wochenübersicht anzeigen
+function showWeekOverview() {
+    let overviewWindow = window.open('', 'Wochenübersicht', 'width=1000,height=800');
+    overviewWindow.document.write('<html><head><title>Wochenübersicht</title>');
+    overviewWindow.document.write('<style>');
+    overviewWindow.document.write('body { font-family: Roboto, sans-serif; padding: 20px; }');
+    overviewWindow.document.write('table { width: 100%; border-collapse: collapse; }');
+    overviewWindow.document.write('th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }');
+    overviewWindow.document.write('th { background-color: #f0f4f8; }');
+    overviewWindow.document.write('</style>');
+    overviewWindow.document.write('</head><body>');
+    overviewWindow.document.write(`<h1>Wochenübersicht KW ${currentWeek.week}, ${currentWeek.year}</h1>`);
+    overviewWindow.document.write('<table>');
+    overviewWindow.document.write('<tr><th>Mitarbeiter</th>');
+    const days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+    days.forEach(day => {
+        overviewWindow.document.write(`<th>${day}</th>`);
+    });
+    overviewWindow.document.write('</tr>');
+
+    const allStaff = [...staffMembers.fa, ...staffMembers.aa];
+    allStaff.forEach(staffName => {
+        overviewWindow.document.write(`<tr><td>${staffName}</td>`);
+        for (let day = 1; day <= 7; day++) {
+            overviewWindow.document.write('<td>');
+            const assignments = getStaffAssignmentsForDay(staffName, day);
+            overviewWindow.document.write(assignments.join('/') || '&nbsp;');
+            overviewWindow.document.write('</td>');
+        }
+        overviewWindow.document.write('</tr>');
+    });
+
+    overviewWindow.document.write('</table>');
+    overviewWindow.document.write('</body></html>');
+    overviewWindow.document.close();
+}
+
+// Mitarbeiterzuweisungen für einen Tag abrufen
+function getStaffAssignmentsForDay(staffName, day) {
+    let assignments = [];
+
+    workplaces.forEach(workplace => {
+        const staffList = currentWeek[day][workplace] || [];
+        if (staffList.some(staff => staff.name === staffName)) {
+            assignments.push(getAbbreviation(workplace));
+        }
+    });
+
+    additionalStatus.forEach(status => {
+        const staffList = currentWeek[day][status] || [];
+        if (staffList.some(staff => staff.name === staffName)) {
+            assignments.push(getAbbreviation(status));
+        }
+    });
+
+    return assignments;
+}
+
+// Abkürzungen
+function getAbbreviation(name) {
+    const abbreviations = {
+        'Angiographie': 'AN',
+        'CT': 'CT',
+        'MRT': 'MR',
+        'Mammographie': 'MG',
+        'Ultraschall': 'US',
+        'Kinder': 'KUS',
+        'Dienst': 'D',
+        'Hintergrund': 'HG',
+        'Dienstfrei': 'F',
+        'Spätdienst': 'S',
+        'Krank': 'K',
+        'Urlaub': 'U',
+        'Weiterbildung': 'WB',
+        'Sonstiges': 'SO'
+    };
+    return abbreviations[name] || name;
+}
+
+// Export als PDF
 function exportAsPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('landscape', 'mm', 'a4');
@@ -318,14 +797,14 @@ function exportAsPDF() {
             });
 
             if (isWorkplace) {
-                if ((index + 1) % 3 === 0) {
+                if ((xPosition + cardWidth * 2) >= 287) {
                     xPosition = 10;
                     yPosition += cardHeight + 5;
                 } else {
                     xPosition += cardWidth + 5;
                 }
             } else {
-                if ((index + 1) % 4 === 0) {
+                if ((xPosition + cardWidth * 3.5) >= 287) {
                     xPosition = 10;
                     yPosition += cardHeight + 5;
                 } else {
@@ -334,7 +813,7 @@ function exportAsPDF() {
             }
         }
 
-        // Zeichne Arbeitsplatzkarten
+        // Zeichne Arbeitsplatzkarten (3x2 Anordnung)
         workplaces.forEach((workplace, index) => {
             const staffList = currentWeek[day][workplace] || [];
             const faCount = staffList.filter(s => s.type === 'fa').length;
@@ -372,7 +851,7 @@ function exportAsPDF() {
         xPosition = 10;
         yPosition += 10;
 
-        // Zeichne Statuskarten
+        // Zeichne Statuskarten (4x2 Anordnung)
         additionalStatus.forEach((status, index) => {
             const staffList = currentWeek[day][status] || [];
             let color = 'rgba(200, 200, 200, 0.2)';
@@ -430,4 +909,133 @@ function exportAsPDF() {
     }
 
     doc.save(`Wochenplan_KW${currentWeek.week}_${currentWeek.year}.pdf`);
+}
+
+// Wochenende oder Feiertag prüfen
+async function checkWeekendOrHoliday() {
+    const date = getDateForWeekAndDay(currentWeek.year, currentWeek.week, currentDay);
+    const isSpecialDay = await isWeekendOrHoliday(date);
+
+    const workplaceCards = document.querySelectorAll('.workplace-card');
+    const statusCards = document.querySelectorAll('.status-card');
+
+    if (isSpecialDay) {
+        workplaceCards.forEach(card => {
+            card.style.display = 'none';
+        });
+
+        statusCards.forEach(card => {
+            const status = card.getAttribute('data-status');
+            if (['Dienst', 'Hintergrund'].includes(status)) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    } else {
+        workplaceCards.forEach(card => {
+            card.style.display = 'block';
+        });
+
+        statusCards.forEach(card => {
+            card.style.display = 'block';
+        });
+    }
+}
+
+// Feiertag prüfen (Sachsen)
+async function isWeekendOrHoliday(date) {
+    const day = date.getDay();
+    if (day === 0 || day === 6) return true;  // Samstag oder Sonntag
+
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const dayOfMonth = date.getDate();
+
+    try {
+        const response = await fetch(`https://feiertage-api.de/api/?jahr=${year}&nur_land=SN`);
+        if (!response.ok) throw new Error('Feiertage API Fehler');
+        const holidays = await response.json();
+
+        for (const holiday in holidays) {
+            if (holidays.hasOwnProperty(holiday)) {
+                const holidayDate = new Date(holidays[holiday].datum);
+                if (holidayDate.getFullYear() === year &&
+                    holidayDate.getMonth() + 1 === month &&
+                    holidayDate.getDate() === dayOfMonth) {
+                    return true;
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Fehler beim Abrufen der Feiertage:', error);
+    }
+
+    return false;
+}
+
+// Aktualisierung der Kartenhintergründe basierend auf den Farben
+function updateCardBackgrounds() {
+    const allCards = document.querySelectorAll('.workplace-card, .status-card');
+    allCards.forEach(card => {
+        if (card.classList.contains('red')) {
+            card.style.backgroundColor = 'rgba(255, 105, 107, 0.2)';
+        } else if (card.classList.contains('yellow')) {
+            card.style.backgroundColor = 'rgba(255, 247, 123, 0.2)';
+        } else if (card.classList.contains('green')) {
+            card.style.backgroundColor = 'rgba(151, 255, 109, 0.2)';
+        } else {
+            card.style.backgroundColor = 'var(--card-color)';
+        }
+    });
+}
+
+// Neue Funktion zum Speichern des Wochenplans
+async function savePlan() {
+    const planData = JSON.stringify(currentWeek);
+    try {
+        const response = await fetch('/api/save-plan', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: planData,
+        });
+        if (!response.ok) {
+            throw new Error('Fehler beim Speichern des Wochenplans');
+        }
+    } catch (error) {
+        console.error('Fehler beim Speichern:', error);
+        throw error;
+    }
+}
+
+// Neue Funktion zum Laden des Wochenplans
+async function loadPlan() {
+    try {
+        const response = await fetch(`/api/load-plan?year=${currentWeek.year}&week=${currentWeek.week}`);
+        if (response.ok) {
+            const planData = await response.json();
+            currentWeek = planData;
+            updateUI();
+        } else if (response.status === 404) {
+            initializeEmptyWeek();
+            updateUI();
+        } else {
+            throw new Error('Fehler beim Laden des Wochenplans');
+        }
+    } catch (error) {
+        console.error('Fehler beim Laden:', error);
+        alert('Fehler beim Laden des Wochenplans. Bitte versuchen Sie es erneut.');
+    }
+}
+
+// Neue Funktion für den Passwortschutz
+function checkPassword() {
+    const password = prompt('Bitte geben Sie das Passwort ein:');
+    if (password === 'Kandinsky1!') {
+        window.location.href = 'editor.html';
+    } else {
+        alert('Falsches Passwort!');
+    }
 }
