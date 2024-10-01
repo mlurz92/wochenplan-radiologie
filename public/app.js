@@ -1,12 +1,14 @@
+// app.js
+
 // Globale Variablen
 let currentWeek = {};
 let currentDay = new Date().getDay();
-if (currentDay === 0 || currentDay === 6) currentDay = 1; // Standardmäßig auf Montag setzen, wenn Wochenende
+if (currentDay === 0) currentDay = 7; // Sonntag als 7 behandeln
 const workplaces = ['CT', 'MRT', 'Angiographie', 'Mammographie', 'Ultraschall', 'Kinder'];
-const additionalStatus = ['Dienst', 'Hintergrund', 'Spätdienst', 'Dienstfrei', 'Urlaub', 'Weiterbildung', 'Krank'];
+const additionalStatus = ['Dienst', 'Hintergrund', 'Spätdienst', 'Dienstfrei', 'Urlaub', 'Weiterbildung', 'Krank', 'Sonstiges'];
 const staffMembers = {
     fa: ['Polednia', 'Dalitz', 'Krzykowski', 'Lurz', 'Placzek', 'Zill'],
-    aa: ['Becker', 'Fröhlich', 'Martin', 'Torki', 'Müller', 'Meier']
+    aa: ['Becker', 'Fröhlich', 'Martin', 'Torki']
 };
 
 // Initialisierung der Anwendung
@@ -53,7 +55,9 @@ function initializeWeekPicker() {
         weekNumbers: true,
         mode: 'single',
         enableTime: false,
-        dateFormat: "Y-W",
+        dateFormat: "W, Y",
+        altInput: true,
+        altFormat: "W, Y",
         onChange: function(selectedDates, dateStr, instance) {
             const date = selectedDates[0];
             const week = getWeekNumber(date);
@@ -61,6 +65,12 @@ function initializeWeekPicker() {
             setCurrentWeek(year, week);
             loadWeekPlan();
             updateUI();
+        },
+        onReady: function(selectedDates, dateStr, instance) {
+            const weekPickerInput = document.querySelector('.flatpickr-input');
+            if (weekPickerInput) {
+                weekPickerInput.setAttribute('readonly', 'readonly');
+            }
         }
     });
 }
@@ -78,7 +88,7 @@ function getWeekNumber(d) {
 function setCurrentWeek(year = new Date().getFullYear(), week = getWeekNumber(new Date())) {
     currentWeek.year = year;
     currentWeek.week = week;
-    document.getElementById('current-week').textContent = `KW ${week}, ${year} (${getDateRange(year, week)})`;
+    updateWeekDisplay();
 }
 
 // Datum Range berechnen
@@ -87,6 +97,18 @@ function getDateRange(year, week) {
     const lastDay = getDateForWeekAndDay(year, week, 7); // Sonntag
     const options = { day: 'numeric', month: 'numeric' };
     return `${firstDay.toLocaleDateString('de-DE', options)} - ${lastDay.toLocaleDateString('de-DE', options)}`;
+}
+
+// Datum für ISO-Woche und Jahr berechnen
+function getDateOfISOWeek(w, y) {
+    const simple = new Date(y, 0, 1 + (w - 1) * 7);
+    const dow = simple.getDay();
+    const ISOweekStart = simple;
+    if (dow <= 4)
+        ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
+    else
+        ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
+    return ISOweekStart;
 }
 
 // Datum für Woche und Tag berechnen
@@ -633,7 +655,7 @@ function initializeEventListeners() {
 
 // Woche ändern
 function changeWeek(offset) {
-    const date = new Date(currentWeek.year, 0, (currentWeek.week - 1) * 7 + 1);
+    const date = getDateOfISOWeek(currentWeek.week, currentWeek.year);
     date.setDate(date.getDate() + offset * 7);
     const newWeek = getWeekNumber(date);
     const newYear = date.getFullYear();
