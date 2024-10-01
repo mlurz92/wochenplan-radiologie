@@ -668,9 +668,11 @@ function getStaffAssignmentsForDay(staffName, day) {
     });
 
     if (workplaceAssignments.length > 0 && statusAssignments.length > 0) {
-        return workplaceAssignments.map(wp => `${wp}/${statusAssignments.join(',')}`);
+        return `${workplaceAssignments.join('/')}/${statusAssignments.join(',')}`;
+    } else if (workplaceAssignments.length > 0) {
+        return workplaceAssignments.join('/');
     } else {
-        return [...workplaceAssignments, ...statusAssignments];
+        return statusAssignments.join(',');
     }
 }
 
@@ -702,32 +704,104 @@ function exportAsPDF() {
     const days = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
     const dateRange = getDateRange(currentWeek.year, currentWeek.week);
 
-    for (let day = 1; day <= 7; day++) {
+    // Funktion zum Erstellen einer Seite für jeden Tag
+    function createDayPage(day) {
         if (day > 1) doc.addPage();
 
+        // Obere Leiste
+        doc.setFillColor(200, 200, 200);
+        doc.rect(0, 0, 297, 15, 'F');
+        doc.setFontSize(12);
+        doc.setTextColor(0);
+        let xOffset = 10;
+        days.forEach((dayName, index) => {
+            doc.text(dayName, xOffset, 10);
+            if (index + 1 === day) {
+                doc.setFillColor(150, 150, 150);
+                doc.rect(xOffset - 2, 0, doc.getTextWidth(dayName) + 4, 15, 'F');
+                doc.setTextColor(255);
+                doc.text(dayName, xOffset, 10);
+                doc.setTextColor(0);
+            }
+            xOffset += doc.getTextWidth(dayName) + 10;
+        });
+
         doc.setFontSize(16);
-        doc.text(`Wochenplan für ${days[day % 7]}, KW ${currentWeek.week} (${dateRange})`, 10, 20);
+        doc.text(`Wochenplan für ${days[day % 7]}, KW ${currentWeek.week} (${dateRange})`, 10, 25);
 
-        let yPosition = 30;
+        let yPosition = 35;
+        let xPosition = 10;
 
+        // Funktion zum Zeichnen einer Karte
+        function drawCard(title, staffList, color) {
+            const cardWidth = 135;
+            const cardHeight = 50;
+            
+            doc.setFillColor(color);
+            doc.roundedRect(xPosition, yPosition, cardWidth, cardHeight, 3, 3, 'F');
+            
+            doc.setFontSize(12);
+            doc.setTextColor(0);
+            doc.text(title, xPosition + 5, yPosition + 10);
+            
+            doc.setFontSize(10);
+            let staffY = yPosition + 20;
+            staffList.forEach(staff => {
+                doc.text(`${staff.type === 'fa' ? 'FA: ' : 'AA: '}${staff.name}`, xPosition + 5, staffY);
+                staffY += 5;
+            });
+
+            if (xPosition + 2 * cardWidth > 287) {
+                xPosition = 10;
+                yPosition += cardHeight + 10;
+            } else {
+                xPosition += cardWidth + 10;
+            }
+        }
+
+        // Zeichne Arbeitsplatzkarten
         workplaces.forEach(workplace => {
             const staffList = currentWeek[day][workplace] || [];
-            let faNames = staffList.filter(s => s.type === 'fa').map(s => s.name).join(', ');
-            let aaNames = staffList.filter(s => s.type === 'aa').map(s => s.name).join(', ');
-
-            doc.setFontSize(12);
-            doc.text(`${workplace} (FA: ${faNames || 'keine'} | AA: ${aaNames || 'keine'})`, 10, yPosition);
-            yPosition += 10;
+            const faCount = staffList.filter(s => s.type === 'fa').length;
+            const aaCount = staffList.filter(s => s.type === 'aa').length;
+            let color;
+            switch(workplace) {
+                case 'CT':
+                    color = (faCount >= 2 || (faCount >= 1 && (faCount + aaCount) >= 3)) ? 'rgba(151, 255, 109, 0.2)' : 'rgba(255, 105, 107, 0.2)';
+                    break;
+                case 'MRT':
+                    color = (faCount >= 1 && (faCount + aaCount) >= 2) ? 'rgba(151, 255, 109, 0.2)' : 'rgba(255, 105, 107, 0.2)';
+                    break;
+                case 'Angiographie':
+                case 'Mammographie':
+                    color = (faCount >= 1 && aaCount >= 1) ? 'rgba(151, 255, 109, 0.2)' : (faCount >= 1 ? 'rgba(255, 247, 123, 0.2)' : 'rgba(255, 105, 107, 0.2)');
+                    break;
+                case 'Ultraschall':
+                    color = ((faCount + aaCount) >= 1) ? 'rgba(151, 255, 109, 0.2)' : 'rgba(255, 105, 107, 0.2)';
+                    break;
+                case 'Kinder':
+                    color = (faCount >= 1) ? 'rgba(151, 255, 109, 0.2)' : 'rgba(255, 105, 107, 0.2)';
+                    break;
+            }
+            drawCard(workplace, staffList, color);
         });
 
+        // Zeichne Statuskarten
         additionalStatus.forEach(status => {
             const staffList = currentWeek[day][status] || [];
-            let names = staffList.map(s => s.name).join(', ');
-
-            doc.setFontSize(12);
-            doc.text(`${status}: ${names || 'keine'}`, 10, yPosition);
-            yPosition += 10;
+            let color = 'rgba(200, 200, 200, 0.2)';
+            if (['Dienst', 'Hintergrund', 'Dienstfrei'].includes(status)) {
+                color = staffList.length === 1 ? 'rgba(151, 255, 109, 0.2)' : 'rgba(255, 105, 107, 0.2)';
+            } else if (status === 'Spätdienst') {
+                color = staffList.length === 1 ? 'rgba(151, 255, 109, 0.2)' : 'rgba(200, 200, 200, 0.2)';
+            }
+            drawCard(status, staffList, color);
         });
+    }
+
+    // Erstelle eine Seite für jeden Tag
+    for (let day = 1; day <= 7; day++) {
+        createDayPage(day);
     }
 
     // Wochenübersicht
@@ -742,7 +816,7 @@ function exportAsPDF() {
         const row = [staffName];
         for (let day = 1; day <= 7; day++) {
             const assignments = getStaffAssignmentsForDay(staffName, day);
-            row.push(assignments.join(', ') || ' ');
+            row.push(assignments || ' ');
         }
         tableData.push(row);
     });
@@ -751,6 +825,13 @@ function exportAsPDF() {
         head: [['Mitarbeiter', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']],
         body: tableData,
         startY: 30,
+    });
+
+    // Füge Lesezeichen hinzu
+    days.forEach((day, index) => {
+        doc.addPage();
+        doc.setPage(index + 1);
+        doc.bookmark(day);
     });
 
     doc.save(`Wochenplan_KW${currentWeek.week}.pdf`);
