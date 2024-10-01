@@ -20,6 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
         initializeStatusCards();
         initializeDragAndDrop();
     } else {
+        initializeWorkplaceCards();
+        initializeStatusCards();
         initializeReadOnlyView();
     }
     initializeEventListeners();
@@ -71,10 +73,11 @@ function initializeWeekPicker() {
 // Kalenderwoche berechnen
 function getWeekNumber(d) {
     d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
     const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-    return weekNo;
+    const weekNum = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    return weekNum;
 }
 
 // Aktuelle Woche setzen
@@ -86,7 +89,7 @@ function setCurrentWeek(year = new Date().getFullYear(), week = getWeekNumber(ne
 
 // Datum Range berechnen
 function getDateRange(year, week) {
-    const firstDay = getDateOfISOWeek(week, year);
+    const firstDay = getDateOfISOWeek(year, week);
     const lastDay = new Date(firstDay);
     lastDay.setDate(lastDay.getDate() + 6);
     const options = { day: 'numeric', month: 'numeric' };
@@ -94,20 +97,17 @@ function getDateRange(year, week) {
 }
 
 // Datum für eine bestimmte ISO-Woche und Jahr berechnen
-function getDateOfISOWeek(w, y) {
-    const simple = new Date(y, 0, 1 + (w - 1) * 7);
+function getDateOfISOWeek(year, week) {
+    const simple = new Date(year, 0, 4 + (week - 1) * 7);
     const dow = simple.getDay();
-    const ISOweekStart = simple;
-    if (dow <= 4)
-        ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
-    else
-        ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
+    const ISOweekStart = new Date(simple);
+    ISOweekStart.setDate(simple.getDate() - ((dow + 6) % 7));
     return ISOweekStart;
 }
 
 // Datum für Woche und Tag berechnen
 function getDateForWeekAndDay(year, week, day) {
-    const firstDayOfWeek = getDateOfISOWeek(week, year);
+    const firstDayOfWeek = getDateOfISOWeek(year, week);
     const result = new Date(firstDayOfWeek);
     result.setDate(result.getDate() + day - 1);
     return result;
@@ -116,6 +116,7 @@ function getDateForWeekAndDay(year, week, day) {
 // Initialisierung von Arbeitsplatzkarten
 function initializeWorkplaceCards() {
     const workplaceCards = document.getElementById('workplace-cards');
+    workplaceCards.innerHTML = '';
     workplaces.forEach(workplace => {
         const card = document.createElement('div');
         card.className = 'workplace-card';
@@ -136,6 +137,7 @@ function initializeWorkplaceCards() {
 // Initialisierung von Statuskarten
 function initializeStatusCards() {
     const statusCards = document.getElementById('additional-status-cards');
+    statusCards.innerHTML = '';
     additionalStatus.forEach(status => {
         const card = document.createElement('div');
         card.className = 'status-card';
@@ -214,8 +216,6 @@ function initializeDragForItem(item) {
 
 // Initialisierung der schreibgeschützten Ansicht
 function initializeReadOnlyView() {
-    initializeWorkplaceCards();
-    initializeStatusCards();
     const staffPool = document.getElementById('staff-pool');
     if (staffPool) {
         staffPool.style.display = 'none';
@@ -621,7 +621,7 @@ function initializeEventListeners() {
 
 // Woche ändern
 function changeWeek(offset) {
-    const date = getDateOfISOWeek(currentWeek.week, currentWeek.year);
+    const date = getDateOfISOWeek(currentWeek.year, currentWeek.week);
     date.setDate(date.getDate() + offset * 7);
     const newWeek = getWeekNumber(date);
     const newYear = date.getFullYear();
@@ -772,18 +772,18 @@ function exportAsPDF() {
 
         // Funktion zum Zeichnen einer Karte
         function drawCard(title, staffList, color, isWorkplace = true) {
-            const cardWidth = isWorkplace ? 90 : 67.5;
-            const cardHeight = isWorkplace ? 40 : 30;
-            
+            const cardWidth = isWorkplace ? 85 : 65;
+            const cardHeight = isWorkplace ? 35 : 25;
+
             const rgbaColor = parseRGBA(color);
             const rgbColor = rgba2rgb(rgbaColor);
             doc.setFillColor(rgbColor.r, rgbColor.g, rgbColor.b);
             doc.roundedRect(xPosition, yPosition, cardWidth, cardHeight, 3, 3, 'F');
-            
+
             doc.setFontSize(9);
             doc.setTextColor(0);
             doc.text(title, xPosition + 3, yPosition + 6);
-            
+
             doc.setFontSize(7);
             let staffY = yPosition + 12;
             staffList.forEach(staff => {
@@ -792,14 +792,14 @@ function exportAsPDF() {
             });
 
             if (isWorkplace) {
-                if (xPosition + 2 * cardWidth > 287) {
+                if ((xPosition + cardWidth * 2) >= 287) {
                     xPosition = 10;
                     yPosition += cardHeight + 5;
                 } else {
                     xPosition += cardWidth + 5;
                 }
             } else {
-                if (xPosition + 4 * cardWidth > 287) {
+                if ((xPosition + cardWidth * 3.5) >= 287) {
                     xPosition = 10;
                     yPosition += cardHeight + 5;
                 } else {
@@ -833,16 +833,16 @@ function exportAsPDF() {
                     break;
             }
             drawCard(workplace, staffList, color, true);
-            
+
             if ((index + 1) % 3 === 0) {
                 xPosition = 10;
-                yPosition += 45;
+                yPosition += 40;
             }
         });
 
         // Reset position for status cards
         xPosition = 10;
-        yPosition += 45;
+        yPosition += 40;
 
         // Zeichne Statuskarten
         additionalStatus.forEach((status, index) => {
@@ -854,10 +854,10 @@ function exportAsPDF() {
                 color = staffList.length === 1 ? 'rgba(151, 255, 109, 0.2)' : 'rgba(200, 200, 200, 0.2)';
             }
             drawCard(status, staffList, color, false);
-            
+
             if ((index + 1) % 4 === 0) {
                 xPosition = 10;
-                yPosition += 35;
+                yPosition += 30;
             }
         });
     }
