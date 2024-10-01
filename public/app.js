@@ -779,39 +779,42 @@ function exportAsPDF() {
             xOffset += doc.getTextWidth(dayName) + 10;
         });
 
+        const currentDate = getDateForWeekAndDay(currentWeek.year, currentWeek.week, day);
+        const formattedDate = currentDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
         doc.setFontSize(16);
         doc.setTextColor(0);
-        doc.text(`Wochenplan für ${days[day % 7]}, KW ${currentWeek.week} (${dateRange})`, 10, 25);
+        doc.text(`Wochenplan für ${days[day % 7]}, ${formattedDate}`, 10, 25);
 
         let yPosition = 35;
         let xPosition = 10;
 
         // Funktion zum Zeichnen einer Karte
         function drawCard(title, staffList, color) {
-            const cardWidth = 135;
-            const cardHeight = 50;
+            const cardWidth = 90;
+            const cardHeight = 40;
             
             const rgbaColor = parseRGBA(color);
             const rgbColor = rgba2rgb(rgbaColor);
             doc.setFillColor(rgbColor.r, rgbColor.g, rgbColor.b);
             doc.roundedRect(xPosition, yPosition, cardWidth, cardHeight, 3, 3, 'F');
             
-            doc.setFontSize(12);
-            doc.setTextColor(0);
-            doc.text(title, xPosition + 5, yPosition + 10);
-            
             doc.setFontSize(10);
-            let staffY = yPosition + 20;
+            doc.setTextColor(0);
+            doc.text(title, xPosition + 3, yPosition + 7);
+            
+            doc.setFontSize(8);
+            let staffY = yPosition + 14;
             staffList.forEach(staff => {
-                doc.text(`${staff.type === 'fa' ? 'FA: ' : 'AA: '}${staff.name}`, xPosition + 5, staffY);
+                doc.text(`${staff.type === 'fa' ? 'FA: ' : 'AA: '}${staff.name}`, xPosition + 3, staffY);
                 staffY += 5;
             });
 
             if (xPosition + 2 * cardWidth > 287) {
                 xPosition = 10;
-                yPosition += cardHeight + 10;
+                yPosition += cardHeight + 5;
             } else {
-                xPosition += cardWidth + 10;
+                xPosition += cardWidth + 5;
             }
         }
 
@@ -872,7 +875,7 @@ function exportAsPDF() {
         const row = [staffName];
         for (let day = 1; day <= 7; day++) {
             const assignments = getStaffAssignmentsForDay(staffName, day);
-            row.push(assignments || ' ');
+            row.push(assignments.join(', ') || ' ');
         }
         tableData.push(row);
     });
