@@ -704,6 +704,27 @@ function exportAsPDF() {
     const days = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
     const dateRange = getDateRange(currentWeek.year, currentWeek.week);
 
+    // Funktion zum Konvertieren von RGBA zu RGB
+    function rgba2rgb(rgba, bgColor = {r:255, g:255, b:255}) {
+        const a = rgba.a !== undefined ? rgba.a : 1;
+        return {
+            r: Math.round((1 - a) * bgColor.r + a * rgba.r),
+            g: Math.round((1 - a) * bgColor.g + a * rgba.g),
+            b: Math.round((1 - a) * bgColor.b + a * rgba.b)
+        };
+    }
+
+    // Funktion zum Parsen von RGBA-Strings
+    function parseRGBA(rgba) {
+        const parts = rgba.substring(rgba.indexOf('(') + 1, rgba.lastIndexOf(')')).split(/,\s*/);
+        return {
+            r: parseInt(parts[0]),
+            g: parseInt(parts[1]),
+            b: parseInt(parts[2]),
+            a: parseFloat(parts[3])
+        };
+    }
+
     // Funktion zum Erstellen einer Seite für jeden Tag
     function createDayPage(day) {
         if (day > 1) doc.addPage();
@@ -737,7 +758,9 @@ function exportAsPDF() {
             const cardWidth = 135;
             const cardHeight = 50;
             
-            doc.setFillColor(color);
+            const rgbaColor = parseRGBA(color);
+            const rgbColor = rgba2rgb(rgbaColor);
+            doc.setFillColor(rgbColor.r, rgbColor.g, rgbColor.b);
             doc.roundedRect(xPosition, yPosition, cardWidth, cardHeight, 3, 3, 'F');
             
             doc.setFontSize(12);
@@ -829,7 +852,6 @@ function exportAsPDF() {
 
     // Füge Lesezeichen hinzu
     days.forEach((day, index) => {
-        doc.addPage();
         doc.setPage(index + 1);
         doc.bookmark(day);
     });
