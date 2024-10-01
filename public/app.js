@@ -295,8 +295,28 @@ function assignStaffToStatus(staffName, staffType, status) {
 }
 
 // Wochenplan laden
-async function loadWeekPlan() {
-    await loadPlan();
+async function loadPlan() {
+    try {
+        const response = await fetch(`/api/load-plan?year=${currentWeek.year}&week=${currentWeek.week}`);
+        if (response.ok) {
+            const planData = await response.json();
+            // Merge planData into currentWeek, keeping year and week
+            currentWeek = {
+                year: currentWeek.year,
+                week: currentWeek.week,
+                ...planData
+            };
+            updateUI();
+        } else if (response.status === 404) {
+            initializeEmptyWeek();
+            updateUI();
+        } else {
+            throw new Error('Fehler beim Laden des Wochenplans');
+        }
+    } catch (error) {
+        console.error('Fehler beim Laden:', error);
+        alert('Fehler beim Laden des Wochenplans. Bitte versuchen Sie es erneut.');
+    }
 }
 
 // Leere Woche initialisieren
