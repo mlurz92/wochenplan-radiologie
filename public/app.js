@@ -301,10 +301,7 @@ async function loadWeekPlan() {
 
 // Leere Woche initialisieren
 function initializeEmptyWeek() {
-    currentWeek = {
-        year: currentWeek.year,
-        week: currentWeek.week
-    };
+    // Behalte year und week bei
     for (let i = 1; i <= 7; i++) {
         currentWeek[i] = {};
         workplaces.forEach(workplace => currentWeek[i][workplace] = []);
@@ -772,43 +769,43 @@ function exportAsPDF() {
 
         // Funktion zum Zeichnen einer Karte
         function drawCard(title, staffList, color, isWorkplace = true) {
-            const cardWidth = isWorkplace ? 85 : 65;
-            const cardHeight = isWorkplace ? 35 : 25;
+            const cardWidth = isWorkplace ? 60 : 50; // Verkleinerte Breite
+            const cardHeight = isWorkplace ? 25 : 20; // Verkleinerte Höhe
 
             const rgbaColor = parseRGBA(color);
             const rgbColor = rgba2rgb(rgbaColor);
             doc.setFillColor(rgbColor.r, rgbColor.g, rgbColor.b);
             doc.roundedRect(xPosition, yPosition, cardWidth, cardHeight, 3, 3, 'F');
 
-            doc.setFontSize(9);
+            doc.setFontSize(8);
             doc.setTextColor(0);
             doc.text(title, xPosition + 3, yPosition + 6);
 
-            doc.setFontSize(7);
-            let staffY = yPosition + 12;
+            doc.setFontSize(6);
+            let staffY = yPosition + 10;
             staffList.forEach(staff => {
                 doc.text(`${staff.type === 'fa' ? 'FA: ' : 'AA: '}${staff.name}`, xPosition + 3, staffY);
                 staffY += 4;
             });
 
             if (isWorkplace) {
-                if ((xPosition + cardWidth * 2) >= 287) {
+                if ((xPosition + cardWidth * 3 + 10) >= 287) { // Platz für 3 Karten
                     xPosition = 10;
-                    yPosition += cardHeight + 5;
+                    yPosition += cardHeight + 10;
                 } else {
-                    xPosition += cardWidth + 5;
+                    xPosition += cardWidth + 10;
                 }
             } else {
-                if ((xPosition + cardWidth * 3.5) >= 287) {
+                if ((xPosition + cardWidth * 4 + 15) >= 287) { // Platz für 4 Karten
                     xPosition = 10;
-                    yPosition += cardHeight + 5;
+                    yPosition += cardHeight + 10;
                 } else {
-                    xPosition += cardWidth + 5;
+                    xPosition += cardWidth + 10;
                 }
             }
         }
 
-        // Zeichne Arbeitsplatzkarten
+        // Zeichne Arbeitsplatzkarten in 3x2 Anordnung
         workplaces.forEach((workplace, index) => {
             const staffList = currentWeek[day][workplace] || [];
             const faCount = staffList.filter(s => s.type === 'fa').length;
@@ -833,18 +830,13 @@ function exportAsPDF() {
                     break;
             }
             drawCard(workplace, staffList, color, true);
-
-            if ((index + 1) % 3 === 0) {
-                xPosition = 10;
-                yPosition += 40;
-            }
         });
 
-        // Reset position for status cards
+        // Reset position für Statuskarten
         xPosition = 10;
-        yPosition += 40;
+        yPosition += 50;
 
-        // Zeichne Statuskarten
+        // Zeichne Statuskarten in 4x2 Anordnung
         additionalStatus.forEach((status, index) => {
             const staffList = currentWeek[day][status] || [];
             let color = 'rgba(200, 200, 200, 0.2)';
@@ -854,11 +846,6 @@ function exportAsPDF() {
                 color = staffList.length === 1 ? 'rgba(151, 255, 109, 0.2)' : 'rgba(200, 200, 200, 0.2)';
             }
             drawCard(status, staffList, color, false);
-
-            if ((index + 1) % 4 === 0) {
-                xPosition = 10;
-                yPosition += 30;
-            }
         });
     }
 
