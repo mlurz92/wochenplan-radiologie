@@ -736,18 +736,20 @@ function exportAsPDF() {
         doc.setTextColor(0);
         let xOffset = 10;
         days.forEach((dayName, index) => {
-            doc.text(dayName, xOffset, 10);
             if (index + 1 === day) {
                 doc.setFillColor(150, 150, 150);
                 doc.rect(xOffset - 2, 0, doc.getTextWidth(dayName) + 4, 15, 'F');
                 doc.setTextColor(255);
-                doc.text(dayName, xOffset, 10);
+            } else {
                 doc.setTextColor(0);
+                doc.link(xOffset - 2, 0, doc.getTextWidth(dayName) + 4, 15, { pageNumber: index + 1 });
             }
+            doc.text(dayName, xOffset, 10);
             xOffset += doc.getTextWidth(dayName) + 10;
         });
 
         doc.setFontSize(16);
+        doc.setTextColor(0);
         doc.text(`Wochenplan für ${days[day % 7]}, KW ${currentWeek.week} (${dateRange})`, 10, 25);
 
         let yPosition = 35;
@@ -850,11 +852,14 @@ function exportAsPDF() {
         startY: 30,
     });
 
-    // Füge Lesezeichen hinzu
-    days.forEach((day, index) => {
-        doc.setPage(index + 1);
-        doc.bookmark(day);
-    });
+    // Füge einen Link zur Wochenübersicht in der oberen Leiste jeder Seite hinzu
+    for (let i = 1; i <= doc.getNumberOfPages(); i++) {
+        doc.setPage(i);
+        doc.setFontSize(12);
+        doc.setTextColor(0);
+        doc.text('Übersicht', 280, 10);
+        doc.link(275, 0, 22, 15, { pageNumber: doc.getNumberOfPages() });
+    }
 
     doc.save(`Wochenplan_KW${currentWeek.week}.pdf`);
 }
