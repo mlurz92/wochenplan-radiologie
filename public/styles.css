@@ -95,6 +95,55 @@ button:hover {
     color: var(--background-color);
 }
 
+#password-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(5px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    transition: opacity 0.5s ease;
+}
+
+.password-container {
+    background-color: var(--card-color);
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.password-container h2 {
+    margin-bottom: 20px;
+}
+
+#password-input {
+    width: 200px;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid var(--text-color);
+    background-color: var(--background-color);
+    color: var(--text-color);
+    border-radius: 4px;
+}
+
+#submit-password {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#submit-password:hover {
+    opacity: 0.9;
+}
+
 #main-container {
     display: flex;
     flex: 1;
