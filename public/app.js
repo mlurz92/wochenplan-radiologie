@@ -851,6 +851,7 @@ function exportAsPDF() {
         const isSpecialDay = await isWeekendOrHoliday(currentDate);
 
         // Zeichne Arbeitsplatzkarten
+        let workplaceCount = 0;
         if (!isSpecialDay) {
             workplaces.forEach((workplace, index) => {
                 if (workplace === 'Kinder' && ![1, 3, 5].includes(day)) {
@@ -880,8 +881,9 @@ function exportAsPDF() {
                         break;
                 }
                 drawCard(workplace, staffList, color, true);
+                workplaceCount++;
 
-                if ((index + 1) % 3 === 0 || index === workplaces.length - 1) {
+                if (workplaceCount % 3 === 0 || index === workplaces.length - 1) {
                     xPosition = 10;
                     yPosition += 35;
                 } else {
@@ -890,9 +892,12 @@ function exportAsPDF() {
             });
         }
 
-        // Reset position für Statuskarten
+        // Berechne die Anzahl der Zeilen für Arbeitsplatzkarten
+        const workplaceRows = Math.ceil(workplaceCount / 3);
+
+        // Reset position für Statuskarten mit konstantem Abstand
         xPosition = 10;
-        yPosition += 10;
+        yPosition = 35 + (workplaceRows * 35) + 20; // Konstanter Abstand von 20 mm
 
         // Zeichne Statuskarten
         additionalStatus.forEach((status, index) => {
