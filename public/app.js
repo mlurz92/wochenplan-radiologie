@@ -16,7 +16,7 @@ const staffMembers = {
 };
 
 // Initialisierung der Anwendung
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     checkBrowserCompatibility();
     initializeWeekPicker();
     if (isEditorMode()) {
@@ -27,10 +27,11 @@ document.addEventListener('DOMContentLoaded', () => {
         initializeWorkplaceCards();
         initializeStatusCards();
         initializeReadOnlyView();
+        await initializePasswordProtection();
     }
     initializeEventListeners();
     setCurrentWeek();
-    loadPlan();
+    await loadPlan();
     updateUI();
 });
 
@@ -320,6 +321,42 @@ async function loadPlan() {
     } catch (error) {
         console.error('Fehler beim Laden:', error);
         alert('Fehler beim Laden des Wochenplans. Bitte versuchen Sie es erneut.');
+    }
+}
+
+// Neue Funktion für den Passwortschutz
+async function initializePasswordProtection() {
+    const overlay = document.createElement('div');
+    overlay.id = 'password-overlay';
+    overlay.innerHTML = `
+        <div class="password-container">
+            <h2>Passwortgeschützter Bereich</h2>
+            <input type="password" id="password-input" placeholder="Passwort eingeben">
+            <button id="submit-password">Zugriff anfordern</button>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const passwordInput = document.getElementById('password-input');
+    const submitButton = document.getElementById('submit-password');
+
+    submitButton.addEventListener('click', checkPassword);
+    passwordInput.addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') {
+            checkPassword();
+        }
+    });
+
+    function checkPassword() {
+        if (passwordInput.value === 'Radiologie1!') {
+            overlay.style.opacity = '0';
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 500);
+        } else {
+            alert('Falsches Passwort. Bitte versuchen Sie es erneut.');
+            passwordInput.value = '';
+        }
     }
 }
 
