@@ -828,38 +828,38 @@ function exportAsPDF() {
 
         // Funktion zum Zeichnen einer Karte
         function drawCard(title, staffList, color, isWorkplace = true) {
-            const cardWidth = isWorkplace ? 60 : 50;
-            const cardHeight = isWorkplace ? 25 : 20;
+            const cardWidth = isWorkplace ? 90 : 67; // Angepasste Breiten für 3 bzw. 4 Karten pro Reihe
+            const cardHeight = isWorkplace ? 40 : 30;
 
             const rgbaColor = parseRGBA(color);
             const rgbColor = rgba2rgb(rgbaColor);
             doc.setFillColor(rgbColor.r, rgbColor.g, rgbColor.b);
             doc.roundedRect(xPosition, yPosition, cardWidth, cardHeight, 3, 3, 'F');
 
-            doc.setFontSize(8);
+            doc.setFontSize(10);
             doc.setTextColor(0);
-            doc.text(title, xPosition + 3, yPosition + 6);
+            doc.text(title, xPosition + 3, yPosition + 7);
 
-            doc.setFontSize(6);
-            let staffY = yPosition + 10;
+            doc.setFontSize(8);
+            let staffY = yPosition + 12;
             staffList.forEach(staff => {
                 doc.text(`${staff.type === 'fa' ? 'FA: ' : 'AA: '}${staff.name}`, xPosition + 3, staffY);
-                staffY += 4;
+                staffY += 5;
             });
 
             if (isWorkplace) {
-                if ((xPosition + cardWidth + 10) >= 287) {
+                if (xPosition >= 200) { // Neue Zeile nach 3 Karten
                     xPosition = 10;
                     yPosition += cardHeight + 10;
                 } else {
-                    xPosition += cardWidth + 10;
+                    xPosition += cardWidth + 8;
                 }
             } else {
-                if ((xPosition + cardWidth + 10) >= 287) {
+                if (xPosition >= 220) { // Neue Zeile nach 4 Karten
                     xPosition = 10;
                     yPosition += cardHeight + 10;
                 } else {
-                    xPosition += cardWidth + 10;
+                    xPosition += cardWidth + 8;
                 }
             }
         }
@@ -868,7 +868,7 @@ function exportAsPDF() {
 
         // Zeichne Arbeitsplatzkarten
         if (!isSpecialDay) {
-            workplaces.forEach((workplace) => {
+            workplaces.forEach((workplace, index) => {
                 if (workplace === 'Kinder' && ![1, 3, 5].includes(day)) {
                     return; // Überspringe Kinder-Karte, wenn nicht Mo, Mi, Fr
                 }
@@ -896,15 +896,21 @@ function exportAsPDF() {
                         break;
                 }
                 drawCard(workplace, staffList, color, true);
+
+                // Neue Zeile nach 3 Karten oder am Ende
+                if ((index + 1) % 3 === 0 || index === workplaces.length - 1) {
+                    xPosition = 10;
+                    yPosition += 50; // Erhöhter Abstand zwischen den Zeilen
+                }
             });
         }
 
         // Reset position für Statuskarten
         xPosition = 10;
-        yPosition += 35;
+        yPosition += 20;
 
         // Zeichne Statuskarten
-        additionalStatus.forEach((status) => {
+        additionalStatus.forEach((status, index) => {
             if (isSpecialDay && !['Dienst', 'Hintergrund'].includes(status)) {
                 return; // Überspringe alle außer Dienst und Hintergrund an Wochenenden/Feiertagen
             }
@@ -920,6 +926,12 @@ function exportAsPDF() {
                 color = staffList.length === 1 ? 'rgba(151, 255, 109, 0.2)' : 'rgba(200, 200, 200, 0.2)';
             }
             drawCard(status, staffList, color, false);
+
+            // Neue Zeile nach 4 Karten oder am Ende
+            if ((index + 1) % 4 === 0 || index === additionalStatus.length - 1) {
+                xPosition = 10;
+                yPosition += 40; // Erhöhter Abstand zwischen den Zeilen
+            }
         });
     }
 
