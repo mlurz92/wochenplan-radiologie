@@ -794,7 +794,7 @@ function exportAsPDF() {
     }
 
     // Funktion zum Erstellen einer Seite für jeden Tag
-    function createDayPage(day) {
+    async function createDayPage(day) {
         if (day > 1) doc.addPage();
 
         // Obere Leiste
@@ -828,8 +828,8 @@ function exportAsPDF() {
 
         // Funktion zum Zeichnen einer Karte
         function drawCard(title, staffList, color, isWorkplace = true) {
-            const cardWidth = isWorkplace ? 60 : 50; // Verkleinerte Breite
-            const cardHeight = isWorkplace ? 25 : 20; // Verkleinerte Höhe
+            const cardWidth = isWorkplace ? 60 : 50;
+            const cardHeight = isWorkplace ? 25 : 20;
 
             const rgbaColor = parseRGBA(color);
             const rgbColor = rgba2rgb(rgbaColor);
@@ -848,14 +848,14 @@ function exportAsPDF() {
             });
 
             if (isWorkplace) {
-                if ((xPosition + cardWidth * 3 + 10) >= 287) { // Platz für 3 Karten
+                if ((xPosition + cardWidth + 10) >= 287) {
                     xPosition = 10;
                     yPosition += cardHeight + 10;
                 } else {
                     xPosition += cardWidth + 10;
                 }
             } else {
-                if ((xPosition + cardWidth * 4 + 15) >= 287) { // Platz für 4 Karten
+                if ((xPosition + cardWidth + 10) >= 287) {
                     xPosition = 10;
                     yPosition += cardHeight + 10;
                 } else {
@@ -864,45 +864,50 @@ function exportAsPDF() {
             }
         }
 
-        // Zeichne Arbeitsplatzkarten
-        workplaces.forEach((workplace, index) => {
-            // Überprüfe, ob die Karte an diesem Tag angezeigt werden soll
-            if (workplace === 'Kinder' && ![1, 3, 5].includes(day)) {
-                return; // Überspringe Kinder-Karte, wenn nicht Mo, Mi, Fr
-            }
+        const isSpecialDay = await isWeekendOrHoliday(currentDate);
 
-            const staffList = currentWeek[day][workplace] || [];
-            const faCount = staffList.filter(s => s.type === 'fa').length;
-            const aaCount = staffList.filter(s => s.type === 'aa').length;
-            let color;
-            switch(workplace) {
-                case 'CT':
-                    color = (faCount >= 2 || (faCount >= 1 && (faCount + aaCount) >= 3)) ? 'rgba(151, 255, 109, 0.2)' : 'rgba(255, 105, 107, 0.2)';
-                    break;
-                case 'MRT':
-                    color = (faCount >= 1 && (faCount + aaCount) >= 2) ? 'rgba(151, 255, 109, 0.2)' : 'rgba(255, 105, 107, 0.2)';
-                    break;
-                case 'Angiographie':
-                case 'Mammographie':
-                    color = (faCount >= 1 && aaCount >= 1) ? 'rgba(151, 255, 109, 0.2)' : (faCount >= 1 ? 'rgba(255, 247, 123, 0.2)' : 'rgba(255, 105, 107, 0.2)');
-                    break;
-                case 'Ultraschall':
-                    color = ((faCount + aaCount) >= 1) ? 'rgba(151, 255, 109, 0.2)' : 'rgba(255, 105, 107, 0.2)';
-                    break;
-                case 'Kinder':
-                    color = (faCount >= 1) ? 'rgba(151, 255, 109, 0.2)' : 'rgba(255, 105, 107, 0.2)';
-                    break;
-            }
-            drawCard(workplace, staffList, color, true);
-        });
+        // Zeichne Arbeitsplatzkarten
+        if (!isSpecialDay) {
+            workplaces.forEach((workplace) => {
+                if (workplace === 'Kinder' && ![1, 3, 5].includes(day)) {
+                    return; // Überspringe Kinder-Karte, wenn nicht Mo, Mi, Fr
+                }
+
+                const staffList = currentWeek[day][workplace] || [];
+                const faCount = staffList.filter(s => s.type === 'fa').length;
+                const aaCount = staffList.filter(s => s.type === 'aa').length;
+                let color;
+                switch(workplace) {
+                    case 'CT':
+                        color = (faCount >= 2 || (faCount >= 1 && (faCount + aaCount) >= 3)) ? 'rgba(151, 255, 109, 0.2)' : 'rgba(255, 105, 107, 0.2)';
+                        break;
+                    case 'MRT':
+                        color = (faCount >= 1 && (faCount + aaCount) >= 2) ? 'rgba(151, 255, 109, 0.2)' : 'rgba(255, 105, 107, 0.2)';
+                        break;
+                    case 'Angiographie':
+                    case 'Mammographie':
+                        color = (faCount >= 1 && aaCount >= 1) ? 'rgba(151, 255, 109, 0.2)' : (faCount >= 1 ? 'rgba(255, 247, 123, 0.2)' : 'rgba(255, 105, 107, 0.2)');
+                        break;
+                    case 'Ultraschall':
+                        color = ((faCount + aaCount) >= 1) ? 'rgba(151, 255, 109, 0.2)' : 'rgba(255, 105, 107, 0.2)';
+                        break;
+                    case 'Kinder':
+                        color = (faCount >= 1) ? 'rgba(151, 255, 109, 0.2)' : 'rgba(255, 105, 107, 0.2)';
+                        break;
+                }
+                drawCard(workplace, staffList, color, true);
+            });
+        }
 
         // Reset position für Statuskarten
         xPosition = 10;
-        yPosition += 10; // Verringerter Abstand zwischen Arbeitsplatzkarten und Statuskarten
+        yPosition += 35;
 
         // Zeichne Statuskarten
-        additionalStatus.forEach((status, index) => {
-            // Überprüfe, ob die Karte an diesem Tag angezeigt werden soll
+        additionalStatus.forEach((status) => {
+            if (isSpecialDay && !['Dienst', 'Hintergrund'].includes(status)) {
+                return; // Überspringe alle außer Dienst und Hintergrund an Wochenenden/Feiertagen
+            }
             if (status === 'Spätdienst' && ![1, 4].includes(day)) {
                 return; // Überspringe Spätdienst-Karte, wenn nicht Mo oder Do
             }
@@ -919,43 +924,45 @@ function exportAsPDF() {
     }
 
     // Erstelle eine Seite für jeden Tag
-    for (let day = 1; day <= 7; day++) {
-        createDayPage(day);
-    }
-
-    // Wochenübersicht
-    doc.addPage();
-    doc.setFontSize(16);
-    doc.text(`Wochenübersicht KW ${currentWeek.week}, ${currentWeek.year} (${dateRange})`, 10, 20);
-
-    const tableData = [];
-    const allStaff = [...staffMembers.fa, ...staffMembers.aa];
-
-    allStaff.forEach(staffName => {
-        const row = [staffName];
+    (async function() {
         for (let day = 1; day <= 7; day++) {
-            const assignments = getStaffAssignmentsForDay(staffName, day);
-            row.push(assignments.length > 0 ? assignments.join('/') : ' ');
+            await createDayPage(day);
         }
-        tableData.push(row);
-    });
 
-    doc.autoTable({
-        head: [['Mitarbeiter', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']],
-        body: tableData,
-        startY: 30,
-    });
+        // Wochenübersicht
+        doc.addPage();
+        doc.setFontSize(16);
+        doc.text(`Wochenübersicht KW ${currentWeek.week}, ${currentWeek.year} (${dateRange})`, 10, 20);
 
-    // Füge einen Link zur Wochenübersicht in der oberen Leiste jeder Seite hinzu
-    for (let i = 1; i <= doc.getNumberOfPages(); i++) {
-        doc.setPage(i);
-        doc.setFontSize(12);
-        doc.setTextColor(0);
-        doc.text('Wochenübersicht', 245, 10); // Position des Links angepasst
-        doc.link(240, 0, 50, 15, { pageNumber: doc.getNumberOfPages() });
-    }
+        const tableData = [];
+        const allStaff = [...staffMembers.fa, ...staffMembers.aa];
 
-    doc.save(`Wochenplan_KW${currentWeek.week}_${currentWeek.year}.pdf`);
+        allStaff.forEach(staffName => {
+            const row = [staffName];
+            for (let day = 1; day <= 7; day++) {
+                const assignments = getStaffAssignmentsForDay(staffName, day);
+                row.push(assignments.length > 0 ? assignments.join('/') : ' ');
+            }
+            tableData.push(row);
+        });
+
+        doc.autoTable({
+            head: [['Mitarbeiter', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']],
+            body: tableData,
+            startY: 30,
+        });
+
+        // Füge einen Link zur Wochenübersicht in der oberen Leiste jeder Seite hinzu
+        for (let i = 1; i <= doc.getNumberOfPages(); i++) {
+            doc.setPage(i);
+            doc.setFontSize(12);
+            doc.setTextColor(0);
+            doc.text('Wochenübersicht', 245, 10);
+            doc.link(240, 0, 50, 15, { pageNumber: doc.getNumberOfPages() });
+        }
+
+        doc.save(`Wochenplan_KW${currentWeek.week}_${currentWeek.year}.pdf`);
+    })();
 }
 
 // Wochenende oder Feiertag prüfen
