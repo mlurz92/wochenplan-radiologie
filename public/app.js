@@ -353,75 +353,109 @@ async function savePlan() {
     }
 }
 
+// Funktion zum Überprüfen, ob eine Karte an einem bestimmten Tag angezeigt werden soll
+function shouldShowCard(cardType, day) {
+    const dayOfWeek = day % 7 || 7; // Konvertiert 0 (Sonntag) zu 7
+
+    switch (cardType) {
+        case 'Kinder':
+            return [1, 3, 5].includes(dayOfWeek); // Montag, Mittwoch, Freitag
+        case 'Spätdienst':
+            return [1, 4].includes(dayOfWeek); // Montag, Donnerstag
+        case 'Dienst':
+        case 'Hintergrund':
+            return true; // Immer anzeigen
+        default:
+            return !isWeekendOrHoliday(getDateForWeekAndDay(currentWeek.year, currentWeek.week, day));
+    }
+}
+
 // UI aktualisieren
-function updateUI() {
-    updateWorkplaceCards();
-    updateStatusCards();
+async function updateUI() {
+    const isSpecialDay = await isWeekendOrHoliday(getDateForWeekAndDay(currentWeek.year, currentWeek.week, currentDay));
+
+    workplaces.forEach(workplace => {
+        const card = document.querySelector(`.workplace-card[data-workplace="${workplace}"]`);
+        if (card) {
+            if (shouldShowCard(workplace, currentDay) && !isSpecialDay) {
+                card.style.display = 'block';
+                updateWorkplaceCard(card, workplace);
+            } else {
+                card.style.display = 'none';
+            }
+        }
+    });
+
+    additionalStatus.forEach(status => {
+        const card = document.querySelector(`.status-card[data-status="${status}"]`);
+        if (card) {
+            if (shouldShowCard(status, currentDay)) {
+                card.style.display = 'block';
+                updateStatusCard(card, status);
+            } else {
+                card.style.display = 'none';
+            }
+        }
+    });
+
     if (isEditorMode()) {
         updateStaffPool();
     }
     updateDayButtons();
-    checkWeekendOrHoliday();
     updateCardBackgrounds();
 }
 
 // Arbeitsplatzkarten aktualisieren
-function updateWorkplaceCards() {
-    workplaces.forEach(workplace => {
-        const card = document.querySelector(`.workplace-card[data-workplace="${workplace}"]`);
-        const staffList = currentWeek[currentDay][workplace] || [];
-        const faList = card.querySelector('.staff-list-items.fa');
-        const aaList = card.querySelector('.staff-list-items.aa');
-        const totalCounter = card.querySelector('h2 .counter');
-        const faCounter = card.querySelector('h3:nth-of-type(1) .counter');
-        const aaCounter = card.querySelector('h3:nth-of-type(2) .counter');
+function updateWorkplaceCard(card, workplace) {
+    const staffList = currentWeek[currentDay][workplace] || [];
+    const faList = card.querySelector('.staff-list-items.fa');
+    const aaList = card.querySelector('.staff-list-items.aa');
+    const totalCounter = card.querySelector('h2 .counter');
+    const faCounter = card.querySelector('h3:nth-of-type(1) .counter');
+    const aaCounter = card.querySelector('h3:nth-of-type(2) .counter');
 
-        faList.innerHTML = '';
-        aaList.innerHTML = '';
+    faList.innerHTML = '';
+    aaList.innerHTML = '';
 
-        let faCount = 0;
-        let aaCount = 0;
+    let faCount = 0;
+    let aaCount = 0;
 
-        staffList.forEach(staff => {
-            const li = createStaffElement(staff);
-            if (staff.type === 'fa') {
-                faList.appendChild(li);
-                faCount++;
-            } else {
-                aaList.appendChild(li);
-                aaCount++;
-            }
-        });
-
-        totalCounter.textContent = `(${faCount + aaCount})`;
-        faCounter.textContent = `(${faCount})`;
-        aaCounter.textContent = `(${aaCount})`;
-
-        updateCardColor(card, workplace, faCount, aaCount);
+    staffList.forEach(staff => {
+        const li = createStaffElement(staff);
+        if (staff.type === 'fa') {
+            faList.appendChild(li);
+            faCount++;
+        } else {
+            aaList.appendChild(li);
+            aaCount++;
+        }
     });
+
+    totalCounter.textContent = `(${faCount + aaCount})`;
+    faCounter.textContent = `(${faCount})`;
+    aaCounter.textContent = `(${aaCount})`;
+
+    updateCardColor(card, workplace, faCount, aaCount);
 }
 
 // Zusatzstatuskarten aktualisieren
-function updateStatusCards() {
-    additionalStatus.forEach(status => {
-        const card = document.querySelector(`.status-card[data-status="${status}"]`);
-        const staffList = currentWeek[currentDay][status] || [];
-        const ul = card.querySelector('.staff-list-items');
-        const counter = card.querySelector('h2 .counter');
+function updateStatusCard(card, status) {
+    const staffList = currentWeek[currentDay][status] || [];
+    const ul = card.querySelector('.staff-list-items');
+    const counter = card.querySelector('h2 .counter');
 
-        ul.innerHTML = '';
+    ul.innerHTML = '';
 
-        staffList.forEach(staff => {
-            const li = createStaffElement(staff);
-            ul.appendChild(li);
-        });
-
-        if (counter) {
-            counter.textContent = `(${staffList.length})`;
-        }
-
-        updateStatusCardColor(card, status, staffList.length);
+    staffList.forEach(staff => {
+        const li = createStaffElement(staff);
+        ul.appendChild(li);
     });
+
+    if (counter) {
+        counter.textContent = `(${staffList.length})`;
+    }
+
+    updateStatusCardColor(card, status, staffList.length);
 }
 
 // Kartenfarbe für Arbeitsplatzkarten aktualisieren
@@ -745,7 +779,6 @@ function getAbbreviation(name) {
 }
 
 // Export als PDF
-// Export als PDF
 function exportAsPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('landscape', 'mm', 'a4');
@@ -775,7 +808,7 @@ function exportAsPDF() {
     }
 
     // Funktion zum Erstellen einer Seite für jeden Tag
-    function createDayPage(day) {
+    async function createDayPage(day) {
         if (day > 1) doc.addPage();
 
         // Obere Leiste
@@ -799,6 +832,7 @@ function exportAsPDF() {
 
         const currentDate = getDateForWeekAndDay(currentWeek.year, currentWeek.week, day);
         const formattedDate = currentDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const isSpecialDay = await isWeekendOrHoliday(currentDate);
 
         doc.setFontSize(16);
         doc.setTextColor(0);
@@ -845,47 +879,51 @@ function exportAsPDF() {
             }
         }
 
-        // Zeichne Arbeitsplatzkarten in 3x2 Anordnung
+        // Zeichne Arbeitsplatzkarten
         workplaces.forEach((workplace, index) => {
-            const staffList = currentWeek[day][workplace] || [];
-            const faCount = staffList.filter(s => s.type === 'fa').length;
-            const aaCount = staffList.filter(s => s.type === 'aa').length;
-            let color;
-            switch(workplace) {
-                case 'CT':
-                    color = (faCount >= 2 || (faCount >= 1 && (faCount + aaCount) >= 3)) ? 'rgba(151, 255, 109, 0.2)' : 'rgba(255, 105, 107, 0.2)';
-                    break;
-                case 'MRT':
-                    color = (faCount >= 1 && (faCount + aaCount) >= 2) ? 'rgba(151, 255, 109, 0.2)' : 'rgba(255, 105, 107, 0.2)';
-                    break;
-                case 'Angiographie':
-                case 'Mammographie':
-                    color = (faCount >= 1 && aaCount >= 1) ? 'rgba(151, 255, 109, 0.2)' : (faCount >= 1 ? 'rgba(255, 247, 123, 0.2)' : 'rgba(255, 105, 107, 0.2)');
-                    break;
-                case 'Ultraschall':
-                    color = ((faCount + aaCount) >= 1) ? 'rgba(151, 255, 109, 0.2)' : 'rgba(255, 105, 107, 0.2)';
-                    break;
-                case 'Kinder':
-                    color = (faCount >= 1) ? 'rgba(151, 255, 109, 0.2)' : 'rgba(255, 105, 107, 0.2)';
-                    break;
+            if (shouldShowCard(workplace, day) && !isSpecialDay) {
+                const staffList = currentWeek[day][workplace] || [];
+                const faCount = staffList.filter(s => s.type === 'fa').length;
+                const aaCount = staffList.filter(s => s.type === 'aa').length;
+                let color;
+                switch(workplace) {
+                    case 'CT':
+                        color = (faCount >= 2 || (faCount >= 1 && (faCount + aaCount) >= 3)) ? 'rgba(151, 255, 109, 0.2)' : 'rgba(255, 105, 107, 0.2)';
+                        break;
+                    case 'MRT':
+                        color = (faCount >= 1 && (faCount + aaCount) >= 2) ? 'rgba(151, 255, 109, 0.2)' : 'rgba(255, 105, 107, 0.2)';
+                        break;
+                    case 'Angiographie':
+                    case 'Mammographie':
+                        color = (faCount >= 1 && aaCount >= 1) ? 'rgba(151, 255, 109, 0.2)' : (faCount >= 1 ? 'rgba(255, 247, 123, 0.2)' : 'rgba(255, 105, 107, 0.2)');
+                        break;
+                    case 'Ultraschall':
+                        color = ((faCount + aaCount) >= 1) ? 'rgba(151, 255, 109, 0.2)' : 'rgba(255, 105, 107, 0.2)';
+                        break;
+                    case 'Kinder':
+                        color = (faCount >= 1) ? 'rgba(151, 255, 109, 0.2)' : 'rgba(255, 105, 107, 0.2)';
+                        break;
+                }
+                drawCard(workplace, staffList, color, true);
             }
-            drawCard(workplace, staffList, color, true);
         });
 
         // Reset position für Statuskarten
         xPosition = 10;
-        yPosition += 10; // Verringerter Abstand zwischen Arbeitsplatzkarten und Statuskarten
+        yPosition += 10;
 
-        // Zeichne Statuskarten in 4x2 Anordnung
+        // Zeichne Statuskarten
         additionalStatus.forEach((status, index) => {
-            const staffList = currentWeek[day][status] || [];
-            let color = 'rgba(200, 200, 200, 0.2)';
-            if (['Dienst', 'Hintergrund', 'Dienstfrei'].includes(status)) {
-                color = staffList.length === 1 ? 'rgba(151, 255, 109, 0.2)' : 'rgba(255, 105, 107, 0.2)';
-            } else if (status === 'Spätdienst') {
-                color = staffList.length === 1 ? 'rgba(151, 255, 109, 0.2)' : 'rgba(200, 200, 200, 0.2)';
+            if (shouldShowCard(status, day)) {
+                const staffList = currentWeek[day][status] || [];
+                let color = 'rgba(200, 200, 200, 0.2)';
+                if (['Dienst', 'Hintergrund', 'Dienstfrei'].includes(status)) {
+                    color = staffList.length === 1 ? 'rgba(151, 255, 109, 0.2)' : 'rgba(255, 105, 107, 0.2)';
+                } else if (status === 'Spätdienst') {
+                    color = staffList.length === 1 ? 'rgba(151, 255, 109, 0.2)' : 'rgba(200, 200, 200, 0.2)';
+                }
+                drawCard(status, staffList, color, false);
             }
-            drawCard(status, staffList, color, false);
         });
     }
 
@@ -922,7 +960,7 @@ function exportAsPDF() {
         doc.setPage(i);
         doc.setFontSize(12);
         doc.setTextColor(0);
-        doc.text('Wochenübersicht', 245, 10); // Position des Links angepasst
+        doc.text('Wochenübersicht', 245, 10);
         doc.link(240, 0, 50, 15, { pageNumber: doc.getNumberOfPages() });
     }
 
@@ -930,38 +968,6 @@ function exportAsPDF() {
 }
 
 // Wochenende oder Feiertag prüfen
-async function checkWeekendOrHoliday() {
-    const date = getDateForWeekAndDay(currentWeek.year, currentWeek.week, currentDay);
-    const isSpecialDay = await isWeekendOrHoliday(date);
-
-    const workplaceCards = document.querySelectorAll('.workplace-card');
-    const statusCards = document.querySelectorAll('.status-card');
-
-    if (isSpecialDay) {
-        workplaceCards.forEach(card => {
-            card.style.display = 'none';
-        });
-
-        statusCards.forEach(card => {
-            const status = card.getAttribute('data-status');
-            if (['Dienst', 'Hintergrund'].includes(status)) {
-                card.style.display = 'block';
-            } else {
-                card.style.display = 'none';
-            }
-        });
-    } else {
-        workplaceCards.forEach(card => {
-            card.style.display = 'block';
-        });
-
-        statusCards.forEach(card => {
-            card.style.display = 'block';
-        });
-    }
-}
-
-// Feiertag prüfen (Sachsen)
 async function isWeekendOrHoliday(date) {
     const day = date.getDay();
     if (day === 0 || day === 6) return true;  // Samstag oder Sonntag
@@ -1008,27 +1014,7 @@ function updateCardBackgrounds() {
     });
 }
 
-// Neue Funktion zum Speichern des Wochenplans
-async function savePlan() {
-    const planData = JSON.stringify(currentWeek);
-    try {
-        const response = await fetch('/api/save-plan', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: planData,
-        });
-        if (!response.ok) {
-            throw new Error('Fehler beim Speichern des Wochenplans');
-        }
-    } catch (error) {
-        console.error('Fehler beim Speichern:', error);
-        throw error;
-    }
-}
-
-// Neue Funktion für den Passwortschutz
+// Passwortschutz für den Editor-Modus
 function checkPassword() {
     const password = prompt('Bitte geben Sie das Passwort ein:');
     if (password === 'Kandinsky1!') {
