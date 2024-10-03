@@ -131,6 +131,10 @@ button:hover {
     border-radius: 4px;
 }
 
+#remember-password {
+    margin-right: 5px;
+}
+
 #submit-password {
     background-color: var(--accent-color);
     color: white;
