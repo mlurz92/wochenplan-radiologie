@@ -56,22 +56,17 @@ function checkBrowserCompatibility() {
 
 // Initialisierung des Wochenpickers
 function initializeWeekPicker() {
-    const weekPicker = new Pikaday({
-        field: document.getElementById('week-picker'),
-        format: 'YYYY-[W]WW',
-        firstDay: 1,
-        showWeekNumber: true,
-        onSelect: function(date) {
-            const year = date.getFullYear();
-            const week = getWeekNumber(date);
-            setCurrentWeek(year, week);
-            loadPlan();
-            updateUI();
-        }
+    document.getElementById('prev-week').addEventListener('click', () => {
+        changeWeek(-1);
+    });
+
+    document.getElementById('next-week').addEventListener('click', () => {
+        changeWeek(1);
     });
 
     document.getElementById('calendar-icon').addEventListener('click', function() {
-        weekPicker.show();
+        // Hier könnten wir in Zukunft eine alternative Funktion implementieren,
+        // falls gewünscht. Vorerst bleibt dieser Event-Listener leer.
     });
 }
 
