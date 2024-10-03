@@ -561,6 +561,9 @@ function createStaffElement(staff) {
             savePlan();
             updateUI();
         });
+        document.getElementById('back-to-viewer').addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
     }
 
     return li;
