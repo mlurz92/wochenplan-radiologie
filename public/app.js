@@ -324,20 +324,31 @@ async function loadPlan() {
     }
 }
 
-// Neue Funktion für den Passwortschutz
-async function initializePasswordProtection() {
-    const overlay = document.createElement('div');
-    overlay.id = 'password-overlay';
-    overlay.innerHTML = `
-        <div class="password-container">
-            <h2>Passwortgeschützter Bereich</h2>
-            <input type="password" id="password-input" placeholder="Passwort eingeben">
-            <button id="submit-password">Zugriff anfordern</button>
-        </div>
-    `;
-    document.body.appendChild(overlay);
+// Funktion zur Überprüfung des gespeicherten Passwort-Tokens
+function checkSavedPasswordToken() {
+    const savedToken = localStorage.getItem('passwordToken');
+    if (savedToken) {
+        const tokenData = JSON.parse(savedToken);
+        const now = new Date().getTime();
+        if (now < tokenData.expiry) {
+            return true;
+        } else {
+            localStorage.removeItem('passwordToken');
+        }
+    }
+    return false;
+}
 
+// Funktion für den Passwortschutz
+async function initializePasswordProtection() {
+    if (checkSavedPasswordToken()) {
+        document.getElementById('password-overlay').style.display = 'none';
+        return;
+    }
+
+    const overlay = document.getElementById('password-overlay');
     const passwordInput = document.getElementById('password-input');
+    const rememberCheckbox = document.getElementById('remember-password');
     const submitButton = document.getElementById('submit-password');
 
     submitButton.addEventListener('click', checkPassword);
@@ -349,6 +360,14 @@ async function initializePasswordProtection() {
 
     function checkPassword() {
         if (passwordInput.value === 'Radiologie1!') {
+            if (rememberCheckbox.checked) {
+                const now = new Date().getTime();
+                const item = {
+                    value: 'authenticated',
+                    expiry: now + 12 * 60 * 60 * 1000, // 12 Stunden
+                };
+                localStorage.setItem('passwordToken', JSON.stringify(item));
+            }
             overlay.style.opacity = '0';
             setTimeout(() => {
                 overlay.style.display = 'none';
