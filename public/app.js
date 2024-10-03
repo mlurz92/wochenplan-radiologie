@@ -19,6 +19,17 @@ const staffMembers = {
 document.addEventListener('DOMContentLoaded', async () => {
     checkBrowserCompatibility();
     initializeWeekPicker();
+    setCurrentWeek();
+    
+    try {
+        await loadPlan();
+    } catch (error) {
+        console.error('Fehler beim Laden des Plans:', error);
+        alert('Fehler beim Laden des Wochenplans. Die Seite wird neu geladen.');
+        location.reload();
+        return;
+    }
+    
     if (isEditorMode()) {
         initializeWorkplaceCards();
         initializeStatusCards();
@@ -30,8 +41,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         await initializePasswordProtection();
     }
     initializeEventListeners();
-    setCurrentWeek();
-    await loadPlan();
     updateUI();
 });
 
@@ -306,16 +315,14 @@ async function loadPlan() {
                 week: currentWeek.week,
                 ...planData
             };
-            updateUI();
         } else if (response.status === 404) {
             initializeEmptyWeek();
-            updateUI();
         } else {
             throw new Error('Fehler beim Laden des Wochenplans');
         }
     } catch (error) {
         console.error('Fehler beim Laden:', error);
-        alert('Fehler beim Laden des Wochenplans. Bitte versuchen Sie es erneut.');
+        throw error;
     }
 }
 
@@ -406,14 +413,31 @@ async function savePlan() {
 
 // UI aktualisieren
 function updateUI() {
-    updateWorkplaceCards();
-    updateStatusCards();
-    if (isEditorMode()) {
-        updateStaffPool();
+    if (!currentWeek || Object.keys(currentWeek).length <= 2) {
+        console.error('Keine Daten vorhanden. Versuche erneut zu laden...');
+        loadPlan().then(() => {
+            updateWorkplaceCards();
+            updateStatusCards();
+            if (isEditorMode()) {
+                updateStaffPool();
+            }
+            updateDayButtons();
+            checkWeekendOrHoliday();
+            updateCardBackgrounds();
+        }).catch(error => {
+            console.error('Fehler beim erneuten Laden:', error);
+            alert('Fehler beim Laden des Wochenplans. Bitte aktualisieren Sie die Seite.');
+        });
+    } else {
+        updateWorkplaceCards();
+        updateStatusCards();
+        if (isEditorMode()) {
+            updateStaffPool();
+        }
+        updateDayButtons();
+        checkWeekendOrHoliday();
+        updateCardBackgrounds();
     }
-    updateDayButtons();
-    checkWeekendOrHoliday();
-    updateCardBackgrounds();
 }
 
 // Arbeitsplatzkarten aktualisieren
