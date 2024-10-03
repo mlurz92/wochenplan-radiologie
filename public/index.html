@@ -18,7 +18,6 @@
                     <button id="prev-week">&lt;</button>
                     <div id="week-picker-container">
                         <span id="calendar-icon">📅</span>
-                        <input type="text" id="week-picker" class="hidden">
                         <span id="current-week"></span>
                     </div>
                     <button id="next-week">&gt;</button>
@@ -48,10 +47,24 @@
             <button id="edit-mode">Bearbeiten</button>
         </div>
     </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pikaday/1.8.0/pikaday.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.13.0/Sortable.min.js"></script>
+
+    <div id="password-overlay">
+        <div class="password-container">
+            <h2>Passwortgeschützter Bereich</h2>
+            <input type="password" id="password-input" placeholder="Passwort eingeben">
+            <div class="remember-me">
+                <input type="checkbox" id="remember-password">
+                <label for="remember-password">Passwort für 12 Stunden merken</label>
+            </div>
+            <button id="submit-password">Zugriff anfordern</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pikaday/1.8.2/pikaday.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.20/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
