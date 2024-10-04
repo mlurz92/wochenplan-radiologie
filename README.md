@@ -264,10 +264,12 @@ Sie können nun von überall auf Ihre Anwendung zugreifen:
 
 ## Wartung und Updates
 
-- Um die Anwendung zu aktualisieren, führen Sie das Update-Skript aus:
+- Um die Anwendung zu aktualisieren, führen Sie folgende Befehle aus:
   ```
   cd /home/pi/wochenplan-radiologie
-  ./update_app.sh
+  git pull
+  npm install
+  pm2 restart wochenplan-radiologie
   ```
 
 - Überwachen Sie die Anwendung mit PM2:
