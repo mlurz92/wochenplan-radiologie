@@ -19,17 +19,6 @@ const staffMembers = {
 document.addEventListener('DOMContentLoaded', async () => {
     checkBrowserCompatibility();
     initializeWeekPicker();
-    setCurrentWeek();
-    
-    try {
-        await loadPlan();
-    } catch (error) {
-        console.error('Fehler beim Laden des Plans:', error);
-        alert('Fehler beim Laden des Wochenplans. Die Seite wird neu geladen.');
-        location.reload();
-        return;
-    }
-    
     if (isEditorMode()) {
         initializeWorkplaceCards();
         initializeStatusCards();
@@ -41,6 +30,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         await initializePasswordProtection();
     }
     initializeEventListeners();
+    setCurrentWeek();
+    await loadPlan();
     updateUI();
 });
 
@@ -85,8 +76,7 @@ function getWeekNumber(d) {
     const dayNum = d.getUTCDay() || 7;
     d.setUTCDate(d.getUTCDate() + 4 - dayNum);
     const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    const weekNum = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-    return weekNum;
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
 }
 
 // Aktuelle Woche setzen
@@ -107,10 +97,13 @@ function getDateRange(year, week) {
 
 // Datum für eine bestimmte ISO-Woche und Jahr berechnen
 function getDateOfISOWeek(year, week) {
-    const simple = new Date(year, 0, 4 + (week - 1) * 7);
+    const simple = new Date(year, 0, 1 + (week - 1) * 7);
     const dow = simple.getDay();
-    const ISOweekStart = new Date(simple);
-    ISOweekStart.setDate(simple.getDate() - ((dow + 6) % 7));
+    const ISOweekStart = simple;
+    if (dow <= 4)
+        ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
+    else
+        ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
     return ISOweekStart;
 }
 
@@ -315,42 +308,33 @@ async function loadPlan() {
                 week: currentWeek.week,
                 ...planData
             };
+            updateUI();
         } else if (response.status === 404) {
             initializeEmptyWeek();
+            updateUI();
         } else {
             throw new Error('Fehler beim Laden des Wochenplans');
         }
     } catch (error) {
         console.error('Fehler beim Laden:', error);
-        throw error;
+        alert('Fehler beim Laden des Wochenplans. Bitte versuchen Sie es erneut.');
     }
 }
 
-// Funktion zur Überprüfung des gespeicherten Passwort-Tokens
-function checkSavedPasswordToken() {
-    const savedToken = localStorage.getItem('passwordToken');
-    if (savedToken) {
-        const tokenData = JSON.parse(savedToken);
-        const now = new Date().getTime();
-        if (now < tokenData.expiry) {
-            return true;
-        } else {
-            localStorage.removeItem('passwordToken');
-        }
-    }
-    return false;
-}
-
-// Funktion für den Passwortschutz
+// Neue Funktion für den Passwortschutz
 async function initializePasswordProtection() {
-    if (checkSavedPasswordToken()) {
-        document.getElementById('password-overlay').style.display = 'none';
-        return;
-    }
+    const overlay = document.createElement('div');
+    overlay.id = 'password-overlay';
+    overlay.innerHTML = `
+        <div class="password-container">
+            <h2>Passwortgeschützter Bereich</h2>
+            <input type="password" id="password-input" placeholder="Passwort eingeben">
+            <button id="submit-password">Zugriff anfordern</button>
+        </div>
+    `;
+    document.body.appendChild(overlay);
 
-    const overlay = document.getElementById('password-overlay');
     const passwordInput = document.getElementById('password-input');
-    const rememberCheckbox = document.getElementById('remember-password');
     const submitButton = document.getElementById('submit-password');
 
     submitButton.addEventListener('click', checkPassword);
@@ -362,14 +346,6 @@ async function initializePasswordProtection() {
 
     function checkPassword() {
         if (passwordInput.value === 'Radiologie1!') {
-            if (rememberCheckbox.checked) {
-                const now = new Date().getTime();
-                const item = {
-                    value: 'authenticated',
-                    expiry: now + 12 * 60 * 60 * 1000, // 12 Stunden
-                };
-                localStorage.setItem('passwordToken', JSON.stringify(item));
-            }
             overlay.style.opacity = '0';
             setTimeout(() => {
                 overlay.style.display = 'none';
@@ -413,31 +389,14 @@ async function savePlan() {
 
 // UI aktualisieren
 function updateUI() {
-    if (!currentWeek || Object.keys(currentWeek).length <= 2) {
-        console.error('Keine Daten vorhanden. Versuche erneut zu laden...');
-        loadPlan().then(() => {
-            updateWorkplaceCards();
-            updateStatusCards();
-            if (isEditorMode()) {
-                updateStaffPool();
-            }
-            updateDayButtons();
-            checkWeekendOrHoliday();
-            updateCardBackgrounds();
-        }).catch(error => {
-            console.error('Fehler beim erneuten Laden:', error);
-            alert('Fehler beim Laden des Wochenplans. Bitte aktualisieren Sie die Seite.');
-        });
-    } else {
-        updateWorkplaceCards();
-        updateStatusCards();
-        if (isEditorMode()) {
-            updateStaffPool();
-        }
-        updateDayButtons();
-        checkWeekendOrHoliday();
-        updateCardBackgrounds();
+    updateWorkplaceCards();
+    updateStatusCards();
+    if (isEditorMode()) {
+        updateStaffPool();
     }
+    updateDayButtons();
+    checkWeekendOrHoliday();
+    updateCardBackgrounds();
 }
 
 // Arbeitsplatzkarten aktualisieren
@@ -599,9 +558,6 @@ function createStaffElement(staff) {
             savePlan();
             updateUI();
         });
-        document.getElementById('back-to-viewer').addEventListener('click', () => {
-            window.location.href = 'index.html';
-        });
     }
 
     return li;
@@ -755,10 +711,10 @@ function initializeEventListeners() {
 
 // Woche ändern
 function changeWeek(offset) {
-    const date = getDateOfISOWeek(currentWeek.year, currentWeek.week);
-    date.setDate(date.getDate() + offset * 7);
-    const newWeek = getWeekNumber(date);
-    const newYear = date.getFullYear();
+    const currentDate = getDateOfISOWeek(currentWeek.year, currentWeek.week);
+    currentDate.setDate(currentDate.getDate() + offset * 7);
+    const newWeek = getWeekNumber(currentDate);
+    const newYear = currentDate.getFullYear();
     setCurrentWeek(newYear, newWeek);
     loadPlan();
 }
