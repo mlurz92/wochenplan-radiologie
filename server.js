@@ -66,6 +66,23 @@ app.get('/api/load-plan', (req, res) => {
   });
 });
 
+// **Neuer Endpoint: Alle Wochenpläne abrufen**
+app.get('/api/get-all-plans', (req, res) => {
+  db.all(`SELECT year, week, plan FROM wochenplaene`, [], (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: 'Fehler beim Abrufen der Wochenpläne' });
+      return console.error(err.message);
+    }
+    // Parse die Plan-Daten aus JSON-Strings
+    const plans = rows.map(row => ({
+      year: row.year,
+      week: row.week,
+      ...JSON.parse(row.plan)
+    }));
+    res.json(plans);
+  });
+});
+
 // Statische Dateien servieren
 app.use(express.static(path.join(__dirname, 'public')));
 
