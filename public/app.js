@@ -18,7 +18,7 @@ const staffMembers = {
 // Initialisierung der Anwendung
 document.addEventListener('DOMContentLoaded', async () => {
     checkBrowserCompatibility();
-    initializeWeekPicker();
+    initializeWeekPicker(); // Diese Funktion ist jetzt leer
     if (isEditorMode()) {
         initializeWorkplaceCards();
         initializeStatusCards();
@@ -54,20 +54,9 @@ function checkBrowserCompatibility() {
     }
 }
 
-// Initialisierung des Wochenpickers
+// Initialisierung des Wochenpickers (ohne Event-Listener)
 function initializeWeekPicker() {
-    document.getElementById('prev-week').addEventListener('click', () => {
-        changeWeek(-1);
-    });
-
-    document.getElementById('next-week').addEventListener('click', () => {
-        changeWeek(1);
-    });
-
-    document.getElementById('calendar-icon').addEventListener('click', function() {
-        // Hier könnten wir in Zukunft eine alternative Funktion implementieren,
-        // falls gewünscht. Vorerst bleibt dieser Event-Listener leer.
-    });
+    // Keine Event-Listener hier
 }
 
 // Kalenderwoche berechnen
@@ -321,7 +310,7 @@ async function loadPlan() {
     }
 }
 
-// Neue Funktion für den Passwortschutz
+// Funktion für die Passwortschutz
 async function initializePasswordProtection() {
     const overlay = document.createElement('div');
     overlay.id = 'password-overlay';
@@ -329,6 +318,10 @@ async function initializePasswordProtection() {
         <div class="password-container">
             <h2>Passwortgeschützter Bereich</h2>
             <input type="password" id="password-input" placeholder="Passwort eingeben">
+            <div>
+                <input type="checkbox" id="remember-password">
+                <label for="remember-password">Passwort für 24h merken</label>
+            </div>
             <button id="submit-password">Zugriff anfordern</button>
         </div>
     `;
@@ -336,6 +329,7 @@ async function initializePasswordProtection() {
 
     const passwordInput = document.getElementById('password-input');
     const submitButton = document.getElementById('submit-password');
+    const rememberCheckbox = document.getElementById('remember-password');
 
     submitButton.addEventListener('click', checkPassword);
     passwordInput.addEventListener('keypress', (event) => {
@@ -344,8 +338,19 @@ async function initializePasswordProtection() {
         }
     });
 
+    // Prüfe, ob das Passwort bereits akzeptiert wurde und noch gültig ist
+    const storedExpiryTime = localStorage.getItem('passwordAccepted');
+    if (storedExpiryTime && new Date().getTime() < storedExpiryTime) {
+        overlay.style.display = 'none';
+    }
+
     function checkPassword() {
         if (passwordInput.value === 'Radiologie1!') {
+            if (rememberCheckbox.checked) {
+                // Speichere den Ablaufzeitpunkt in localStorage
+                const expiryTime = new Date().getTime() + 24 * 60 * 60 * 1000; // 24 Stunden ab jetzt
+                localStorage.setItem('passwordAccepted', expiryTime);
+            }
             overlay.style.opacity = '0';
             setTimeout(() => {
                 overlay.style.display = 'none';
@@ -651,6 +656,7 @@ function updateDayButtons() {
 
 // Event Listener initialisieren
 function initializeEventListeners() {
+    // Event Listener für Week Change Buttons hinzufügen
     document.getElementById('prev-week').addEventListener('click', () => {
         changeWeek(-1);
     });
@@ -704,19 +710,35 @@ function initializeEventListeners() {
                 alert('Fehler beim Speichern des Wochenplans. Bitte versuchen Sie es erneut.');
             }
         });
+
+        document.getElementById('back-to-viewer').addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
     } else {
-        document.getElementById('edit-mode').addEventListener('click', checkPassword);
+        document.getElementById('edit-mode').addEventListener('click', () => {
+            promptForEditorPassword();
+        });
+    }
+}
+
+function promptForEditorPassword() {
+    const password = prompt('Bitte geben Sie das Passwort ein:');
+    if (password === 'Kandinsky1!') {
+        window.location.href = 'editor.html';
+    } else {
+        alert('Falsches Passwort!');
     }
 }
 
 // Woche ändern
-function changeWeek(offset) {
+async function changeWeek(offset) {
     const currentDate = getDateOfISOWeek(currentWeek.year, currentWeek.week);
     currentDate.setDate(currentDate.getDate() + offset * 7);
     const newWeek = getWeekNumber(currentDate);
     const newYear = currentDate.getFullYear();
     setCurrentWeek(newYear, newWeek);
-    loadPlan();
+    await loadPlan();
+    updateUI();
 }
 
 // Wochenübersicht anzeigen
@@ -807,7 +829,7 @@ function exportAsPDF() {
     const dateRange = getDateRange(currentWeek.year, currentWeek.week);
 
     // Funktion zum Konvertieren von RGBA zu RGB
-    function rgba2rgb(rgba, bgColor = {r:255, g:255, b:255}) {
+    function rgba2rgb(rgba, bgColor = { r: 255, g: 255, b: 255 }) {
         const a = rgba.a !== undefined ? rgba.a : 1;
         return {
             r: Math.round((1 - a) * bgColor.r + a * rgba.r),
@@ -896,7 +918,7 @@ function exportAsPDF() {
                 const faCount = staffList.filter(s => s.type === 'fa').length;
                 const aaCount = staffList.filter(s => s.type === 'aa').length;
                 let color;
-                switch(workplace) {
+                switch (workplace) {
                     case 'CT':
                         color = (faCount >= 2 || (faCount >= 1 && (faCount + aaCount) >= 3)) ? 'rgba(151, 255, 109, 0.2)' : 'rgba(255, 105, 107, 0.2)';
                         break;
@@ -926,12 +948,9 @@ function exportAsPDF() {
             });
         }
 
-        // Berechne die Anzahl der Zeilen für Arbeitsplatzkarten
-        const workplaceRows = Math.ceil(workplaceCount / 3);
-
         // Reset position für Statuskarten mit konstantem Abstand
         xPosition = 10;
-        yPosition = 35 + (workplaceRows * 35) + 20; // Konstanter Abstand von 20 mm
+        yPosition = 35 + (Math.ceil(workplaceCount / 3) * 35) + 20; // Konstanter Abstand von 20 mm
 
         // Zeichne Statuskarten
         additionalStatus.forEach((status, index) => {
@@ -961,7 +980,7 @@ function exportAsPDF() {
     }
 
     // Erstelle eine Seite für jeden Tag
-    (async function() {
+    (async function () {
         for (let day = 1; day <= 7; day++) {
             await createDayPage(day);
         }
@@ -995,7 +1014,7 @@ function exportAsPDF() {
             doc.setFontSize(12);
             doc.setTextColor(0);
             doc.text('Wochenübersicht', 245, 10);
-            doc.link(240, 0, 50, 15, { pageNumber: doc.getNumberOfPages() });
+            doc.link(240, 0, doc.getTextWidth('Wochenübersicht') + 4, 15, { pageNumber: doc.getNumberOfPages() });
         }
 
         doc.save(`Wochenplan_KW${currentWeek.week}_${currentWeek.year}.pdf`);
@@ -1089,34 +1108,4 @@ function updateCardBackgrounds() {
             card.style.backgroundColor = 'var(--card-color)';
         }
     });
-}
-
-// Neue Funktion zum Speichern des Wochenplans
-async function savePlan() {
-    const planData = JSON.stringify(currentWeek);
-    try {
-        const response = await fetch('/api/save-plan', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: planData,
-        });
-        if (!response.ok) {
-            throw new Error('Fehler beim Speichern des Wochenplans');
-        }
-    } catch (error) {
-        console.error('Fehler beim Speichern:', error);
-        throw error;
-    }
-}
-
-// Neue Funktion für den Passwortschutz
-function checkPassword() {
-    const password = prompt('Bitte geben Sie das Passwort ein:');
-    if (password === 'Kandinsky1!') {
-        window.location.href = 'editor.html';
-    } else {
-        alert('Falsches Passwort!');
-    }
 }
