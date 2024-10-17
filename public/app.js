@@ -970,11 +970,11 @@ function exportAsPDF() {
             doc.setFillColor(rgbColor.r, rgbColor.g, rgbColor.b);
             doc.roundedRect(xPosition, yPosition, cardWidth, cardHeight, 3, 3, 'F');
 
-            doc.setFontSize(8);
+            doc.setFontSize(14);
             doc.setTextColor(0);
             doc.text(title, xPosition + 3, yPosition + 6);
 
-            doc.setFontSize(6);
+            doc.setFontSize(12);
             let staffY = yPosition + 10;
             staffList.forEach(staff => {
                 doc.text(`${staff.type === 'fa' ? 'FA: ' : 'AA: '}${staff.name}`, xPosition + 3, staffY);
