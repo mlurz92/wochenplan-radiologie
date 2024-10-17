@@ -287,26 +287,36 @@ function assignStaffToStatus(staffName, staffType, status) {
 
 // Wochenplan laden
 async function loadPlan() {
-    try {
-        const response = await fetch(`/api/load-plan?year=${currentWeek.year}&week=${currentWeek.week}`);
-        if (response.ok) {
-            const planData = await response.json();
-            // Merge planData into currentWeek, keeping year and week
-            currentWeek = {
-                year: currentWeek.year,
-                week: currentWeek.week,
-                ...planData
-            };
-            updateUI();
-        } else if (response.status === 404) {
+    if (isEditorMode()) {
+        // Im Editor-Modus versuchen wir zuerst, den Plan aus dem Local Storage zu laden
+        if (!loadPlanFromLocalStorage()) {
+            // Wenn kein Plan im Local Storage vorhanden ist, initialisieren wir eine leere Woche
             initializeEmptyWeek();
-            updateUI();
-        } else {
-            throw new Error('Fehler beim Laden des Wochenplans');
         }
-    } catch (error) {
-        console.error('Fehler beim Laden:', error);
-        alert('Fehler beim Laden des Wochenplans. Bitte versuchen Sie es erneut.');
+        updateUI();
+    } else {
+        // Im Viewer-Modus laden wir den Plan vom Server
+        try {
+            const response = await fetch(`/api/load-plan?year=${currentWeek.year}&week=${currentWeek.week}`);
+            if (response.ok) {
+                const planData = await response.json();
+                // Merge planData into currentWeek, keeping year and week
+                currentWeek = {
+                    year: currentWeek.year,
+                    week: currentWeek.week,
+                    ...planData
+                };
+                updateUI();
+            } else if (response.status === 404) {
+                initializeEmptyWeek();
+                updateUI();
+            } else {
+                throw new Error('Fehler beim Laden des Wochenplans');
+            }
+        } catch (error) {
+            console.error('Fehler beim Laden:', error);
+            alert('Fehler beim Laden des Wochenplans. Bitte versuchen Sie es erneut.');
+        }
     }
 }
 
@@ -385,10 +395,44 @@ async function savePlan() {
         });
         if (!response.ok) {
             throw new Error('Fehler beim Speichern des Wochenplans');
+        } else {
+            localStorage.removeItem(`plan_${currentWeek.year}_KW${currentWeek.week}`);
         }
     } catch (error) {
         console.error('Fehler beim Speichern:', error);
         throw error;
+    }
+}
+
+// Plan im Local Storage speichern
+function savePlanToLocalStorage() {
+    const key = `plan_${currentWeek.year}_KW${currentWeek.week}`;
+    const planData = JSON.stringify(currentWeek);
+    localStorage.setItem(key, planData);
+}
+
+// Plan aus dem Local Storage laden
+function loadPlanFromLocalStorage() {
+    const key = `plan_${currentWeek.year}_KW${currentWeek.week}`;
+    const planData = localStorage.getItem(key);
+    if (planData) {
+        currentWeek = JSON.parse(planData);
+        return true;
+    }
+    return false;
+}
+
+function checkForUnsavedChanges() {
+    const key = `plan_${currentWeek.year}_KW${currentWeek.week}`;
+    const savedPlan = localStorage.getItem(key);
+    const saveButton = document.getElementById('save-plan');
+
+    if (savedPlan) {
+        saveButton.textContent = 'Änderungen Speichern';
+        saveButton.classList.add('unsaved');
+    } else {
+        saveButton.textContent = 'Speicher aktuell';
+        saveButton.classList.remove('unsaved')
     }
 }
 
@@ -398,6 +442,8 @@ function updateUI() {
     updateStatusCards();
     if (isEditorMode()) {
         updateStaffPool();
+        savePlanToLocalStorage();
+        checkForUnsavedChanges();
     }
     updateDayButtons();
     checkWeekendOrHoliday();
@@ -688,7 +734,7 @@ function initializeEventListeners() {
             if (confirm('Möchten Sie den aktuellen Tag wirklich zurücksetzen?')) {
                 workplaces.forEach(workplace => currentWeek[currentDay][workplace] = []);
                 additionalStatus.forEach(status => currentWeek[currentDay][status] = []);
-                savePlan();
+                savePlanToLocalStorage();
                 updateUI();
             }
         });
@@ -696,7 +742,7 @@ function initializeEventListeners() {
         document.getElementById('reset-week').addEventListener('click', () => {
             if (confirm('Möchten Sie die aktuelle Woche wirklich zurücksetzen?')) {
                 initializeEmptyWeek();
-                savePlan();
+                savePlanToLocalStorage();
                 updateUI();
             }
         });
@@ -732,6 +778,9 @@ function promptForEditorPassword() {
 
 // Woche ändern
 async function changeWeek(offset) {
+    if (isEditorMode()) {
+        savePlanToLocalStorage();
+    }
     const currentDate = getDateOfISOWeek(currentWeek.year, currentWeek.week);
     currentDate.setDate(currentDate.getDate() + offset * 7);
     const newWeek = getWeekNumber(currentDate);
