@@ -288,7 +288,10 @@ function assignStaffToStatus(staffName, staffType, status) {
 // Wochenplan laden
 async function loadPlan() {
     if (isEditorMode()) {
-        // Im Editor-Modus versuchen wir zuerst, den Plan aus dem Local Storage zu laden
+        // Im Editor-Modus alle Pläne vom Server abrufen und im Local Storage speichern
+        await fetchAndStoreAllPlans();
+
+        // Dann den aktuellen Wochenplan aus dem Local Storage laden
         if (!loadPlanFromLocalStorage()) {
             // Wenn kein Plan im Local Storage vorhanden ist, initialisieren wir eine leere Woche
             initializeEmptyWeek();
@@ -395,10 +398,15 @@ async function savePlan() {
         });
         if (!response.ok) {
             throw new Error('Fehler beim Speichern des Wochenplans');
+        } else {
+            // Plan aus dem Local Storage entfernen
+            localStorage.removeItem(`plan_${currentWeek.year}_KW${currentWeek.week}`);
+            checkForUnsavedChanges(); // Save-Button aktualisieren
+            alert('Wochenplan erfolgreich gespeichert!');
         }
     } catch (error) {
         console.error('Fehler beim Speichern:', error);
-        throw error;
+        alert('Fehler beim Speichern des Wochenplans. Bitte versuchen Sie es erneut.');
     }
 }
 
@@ -419,6 +427,28 @@ function loadPlanFromLocalStorage() {
     }
     return false;
 }
+
+// Holt alle Wochenpläne vom Server und speichert sie im Local Storage.
+async function fetchAndStoreAllPlans() {
+    try {
+        const response = await fetch('/api/get-all-plans');
+        if (!response.ok) {
+            throw new Error('Fehler beim Abrufen der Wochenpläne vom Server');
+        }
+        const allPlans = await response.json(); // Erwartet ein Array von Plänen
+
+        allPlans.forEach(plan => {
+            const key = `plan_${plan.year}_KW${plan.week}`;
+            localStorage.setItem(key, JSON.stringify(plan));
+        });
+
+        console.log('Alle Wochenpläne wurden erfolgreich im Local Storage gespeichert.');
+    } catch (error) {
+        console.error('Fehler beim Abrufen und Speichern der Wochenpläne:', error);
+        alert('Fehler beim Laden der Wochenpläne. Bitte versuchen Sie es erneut.');
+    }
+}
+
 
 function checkForUnsavedChanges() {
     const key = `plan_${currentWeek.year}_KW${currentWeek.week}`;
@@ -732,7 +762,7 @@ function initializeEventListeners() {
             if (confirm('Möchten Sie den aktuellen Tag wirklich zurücksetzen?')) {
                 workplaces.forEach(workplace => currentWeek[currentDay][workplace] = []);
                 additionalStatus.forEach(status => currentWeek[currentDay][status] = []);
-                savePlanToLocalStorage();
+                savePlanToLocalStorage(); // Plan im Local Storage aktualisieren
                 updateUI();
             }
         });
@@ -740,7 +770,7 @@ function initializeEventListeners() {
         document.getElementById('reset-week').addEventListener('click', () => {
             if (confirm('Möchten Sie die aktuelle Woche wirklich zurücksetzen?')) {
                 initializeEmptyWeek();
-                savePlanToLocalStorage();
+                savePlanToLocalStorage(); // Plan im Local Storage aktualisieren
                 updateUI();
             }
         });
@@ -777,6 +807,7 @@ function promptForEditorPassword() {
 // Woche ändern
 async function changeWeek(offset) {
     if (isEditorMode()) {
+        // Speichern des aktuellen Plans im Local Storage
         savePlanToLocalStorage();
     }
     const currentDate = getDateOfISOWeek(currentWeek.year, currentWeek.week);
