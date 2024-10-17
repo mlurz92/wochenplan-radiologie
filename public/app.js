@@ -395,8 +395,6 @@ async function savePlan() {
         });
         if (!response.ok) {
             throw new Error('Fehler beim Speichern des Wochenplans');
-        } else {
-            localStorage.removeItem(`plan_${currentWeek.year}_KW${currentWeek.week}`);
         }
     } catch (error) {
         console.error('Fehler beim Speichern:', error);
