@@ -101,12 +101,22 @@ button:hover {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(5px);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
     transition: opacity 0.5s ease;
+}
+
+.password-container div {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.password-container input[type="checkbox"] {
+    margin-right: 5px;
 }
 
 .password-container {
@@ -130,10 +140,6 @@ button:hover {
     border-radius: 4px;
 }
 
-#remember-password {
-    margin-right: 5px;
-}
-
 #submit-password {
     background-color: var(--accent-color);
     color: white;
@@ -141,7 +147,6 @@ button:hover {
     padding: 10px 20px;
     border-radius: 4px;
     cursor: pointer;
-    margin-top: 10px;
 }
 
 #submit-password:hover {
@@ -237,7 +242,7 @@ button:hover {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     transition: box-shadow 0.3s ease, background-color 0.3s ease;
     width: 100%;
-    display: none;
+    display: block;
 }
 
 .workplace-card:hover, .status-card:hover {
