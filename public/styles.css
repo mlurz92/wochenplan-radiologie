@@ -95,6 +95,10 @@ button:hover {
     color: var(--background-color);
 }
 
+button.unsaved {
+    background-color: #ffffff7e; /* Gelbe Farbe für Aufmerksamkeit */
+}
+
 #password-overlay {
     position: fixed;
     top: 0;
