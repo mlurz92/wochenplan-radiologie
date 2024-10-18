@@ -14,6 +14,7 @@ const staffMembers = {
     fa: ['Polednia', 'Dalitz', 'Krzykowski', 'Lurz', 'Placzek', 'Zill'],
     aa: ['Becker', 'Fröhlich', 'Martin', 'Torki']
 };
+let currentNotes = '';
 
 // Initialisierung der Anwendung
 document.addEventListener('DOMContentLoaded', async () => {
@@ -30,6 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await initializePasswordProtection();
     }
     initializeEventListeners();
+    initializeNotesEventListeners();
     setCurrentWeek();
     await loadPlan();
     updateUI();
@@ -288,28 +290,24 @@ function assignStaffToStatus(staffName, staffType, status) {
 // Wochenplan laden
 async function loadPlan() {
     if (isEditorMode()) {
-        // Im Editor-Modus alle Pläne vom Server abrufen und im Local Storage speichern
         await fetchAndStoreAllPlans();
-
-        // Dann den aktuellen Wochenplan aus dem Local Storage laden
         if (!loadPlanFromLocalStorage()) {
-            // Wenn kein Plan im Local Storage vorhanden ist, initialisieren wir eine leere Woche
             initializeEmptyWeek();
         }
         updateUI();
     } else {
-        // Im Viewer-Modus laden wir den Plan vom Server
         try {
             const response = await fetch(`/api/load-plan?year=${currentWeek.year}&week=${currentWeek.week}`);
             if (response.ok) {
                 const planData = await response.json();
-                // Merge planData into currentWeek, keeping year and week
                 currentWeek = {
                     year: currentWeek.year,
                     week: currentWeek.week,
                     ...planData
                 };
+                currentNotes = planData.notes || '';
                 updateUI();
+                loadNotes();
             } else if (response.status === 404) {
                 initializeEmptyWeek();
                 updateUI();
@@ -318,13 +316,29 @@ async function loadPlan() {
             }
         } catch (error) {
             console.error('Fehler beim Laden:', error);
-            alert('Fehler beim Laden des Wochenplans. Bitte versuchen Sie es erneut.');
         }
     }
 }
 
+// Passwörter
+const VIEWER_PASSWORD = 'Radiologie1!';
+const EDITOR_PASSWORD = 'Kandinsky1!';
+
 // Funktion für die Passwortschutz
 async function initializePasswordProtection() {
+    const overlay = createPasswordOverlay();
+    document.body.appendChild(overlay);
+
+    showPasswordOverlay('viewer');
+
+    // Prüfe, ob das Passwort bereits akzeptiert wurde und noch gültig ist
+    const storedExpiryTime = localStorage.getItem('passwordAccepted');
+    if (storedExpiryTime && new Date().getTime() < storedExpiryTime) {
+        overlay.style.display = 'none';
+    }
+}
+
+function createPasswordOverlay() {
     const overlay = document.createElement('div');
     overlay.id = 'password-overlay';
     overlay.innerHTML = `
@@ -338,40 +352,59 @@ async function initializePasswordProtection() {
             <button id="submit-password">Zugriff anfordern</button>
         </div>
     `;
+    return overlay;
+}
+
+function showPasswordOverlay(mode) {
+    const overlay = document.getElementById('password-overlay') || createPasswordOverlay();
+    overlay.style.display = 'flex';
     document.body.appendChild(overlay);
 
-    const passwordInput = document.getElementById('password-input');
+    const title = overlay.querySelector('h2');
+    title.textContent = mode === 'editor' ? 'Editor-Modus Passwort' : 'Passwortgeschützter Bereich';
+
     const submitButton = document.getElementById('submit-password');
+    const passwordInput = document.getElementById('password-input');
     const rememberCheckbox = document.getElementById('remember-password');
 
-    submitButton.addEventListener('click', checkPassword);
-    passwordInput.addEventListener('keypress', (event) => {
-        if (event.key === 'Enter') {
-            checkPassword();
-        }
-    });
+    passwordInput.value = '';
+    passwordInput.focus();
 
-    // Prüfe, ob das Passwort bereits akzeptiert wurde und noch gültig ist
-    const storedExpiryTime = localStorage.getItem('passwordAccepted');
-    if (storedExpiryTime && new Date().getTime() < storedExpiryTime) {
-        overlay.style.display = 'none';
+    function onSubmit() {
+        checkPassword(overlay, mode);
     }
 
-    function checkPassword() {
-        if (passwordInput.value === 'Radiologie1!') {
-            if (rememberCheckbox.checked) {
-                // Speichere den Ablaufzeitpunkt in localStorage
-                const expiryTime = new Date().getTime() + 24 * 60 * 60 * 1000; // 24 Stunden ab jetzt
-                localStorage.setItem('passwordAccepted', expiryTime);
-            }
-            overlay.style.opacity = '0';
-            setTimeout(() => {
-                overlay.style.display = 'none';
-            }, 500);
-        } else {
-            alert('Falsches Passwort. Bitte versuchen Sie es erneut.');
-            passwordInput.value = '';
+    submitButton.onclick = onSubmit;
+    passwordInput.onkeypress = (event) => {
+        if (event.key === 'Enter') {
+            onSubmit();
         }
+    };
+}
+
+function checkPassword(overlay, mode) {
+    const passwordInput = document.getElementById('password-input');
+    const rememberCheckbox = document.getElementById('remember-password');
+
+    const correctPassword = mode === 'editor' ? EDITOR_PASSWORD : VIEWER_PASSWORD;
+
+    if (passwordInput.value === correctPassword) {
+        if (rememberCheckbox.checked) {
+            const expiryTime = new Date().getTime() + 24 * 60 * 60 * 1000; // 24 Stunden ab jetzt
+            localStorage.setItem('passwordAccepted', expiryTime);
+        }
+        overlay.style.opacity = '0';
+        setTimeout(() => {
+            overlay.style.display = 'none';
+        }, 500);
+
+        if (mode === 'editor') {
+            window.location.href = 'editor.html';
+        }
+    } else {
+        alert('Falsches Passwort. Bitte versuchen Sie es erneut.');
+        passwordInput.value = '';
+        passwordInput.focus();
     }
 }
 
@@ -387,7 +420,7 @@ function initializeEmptyWeek() {
 
 // Wochenplan speichern
 async function savePlan() {
-    const planData = JSON.stringify(currentWeek);
+    const planData = JSON.stringify({ ...currentWeek, notes: currentNotes });
     try {
         const response = await fetch('/api/save-plan', {
             method: 'POST',
@@ -399,14 +432,34 @@ async function savePlan() {
         if (!response.ok) {
             throw new Error('Fehler beim Speichern des Wochenplans');
         } else {
-            // Plan aus dem Local Storage entfernen
             localStorage.removeItem(`plan_${currentWeek.year}_KW${currentWeek.week}`);
-            checkForUnsavedChanges(); // Save-Button aktualisieren
-            alert('Wochenplan erfolgreich gespeichert!');
+            checkForUnsavedChanges();
         }
     } catch (error) {
         console.error('Fehler beim Speichern:', error);
-        alert('Fehler beim Speichern des Wochenplans. Bitte versuchen Sie es erneut.');
+    }
+}
+
+// Funktion zum Speichern der Notizen
+function saveNotes() {
+    const notesInput = document.getElementById('notes-input');
+    if (notesInput) {
+        currentNotes = notesInput.value;
+        savePlan();
+    }
+}
+
+// Funktion zum Laden der Notizen
+function loadNotes() {
+    const notesInput = document.getElementById('notes-input');
+    const notesContent = document.getElementById('notes-content');
+    
+    if (notesInput) {
+        notesInput.value = currentNotes;
+    }
+    
+    if (notesContent) {
+        notesContent.textContent = currentNotes;
     }
 }
 
@@ -435,7 +488,7 @@ async function fetchAndStoreAllPlans() {
         if (!response.ok) {
             throw new Error('Fehler beim Abrufen der Wochenpläne vom Server');
         }
-        const allPlans = await response.json(); // Erwartet ein Array von Plänen
+        const allPlans = await response.json();
 
         allPlans.forEach(plan => {
             const key = `plan_${plan.year}_KW${plan.week}`;
@@ -445,7 +498,6 @@ async function fetchAndStoreAllPlans() {
         console.log('Alle Wochenpläne wurden erfolgreich im Local Storage gespeichert.');
     } catch (error) {
         console.error('Fehler beim Abrufen und Speichern der Wochenpläne:', error);
-        alert('Fehler beim Laden der Wochenpläne. Bitte versuchen Sie es erneut.');
     }
 }
 
@@ -476,6 +528,7 @@ function updateUI() {
     updateDayButtons();
     checkWeekendOrHoliday();
     updateCardBackgrounds();
+    loadNotes();
 }
 
 // Arbeitsplatzkarten aktualisieren
@@ -629,7 +682,7 @@ function createStaffElement(staff) {
 
     if (isEditorMode()) {
         li.querySelector('.remove-btn').addEventListener('click', (event) => {
-            event.stopPropagation(); // Verhindert Bubble-up des Events
+            event.stopPropagation();
             const card = li.closest('.workplace-card, .status-card');
             const workplace = card.getAttribute('data-workplace');
             const status = card.getAttribute('data-status');
@@ -640,6 +693,14 @@ function createStaffElement(staff) {
     }
 
     return li;
+}
+
+// Event-Listener für Notizen
+function initializeNotesEventListeners() {
+    const notesInput = document.getElementById('notes-input');
+    if (notesInput) {
+        notesInput.addEventListener('input', saveNotes);
+    }
 }
 
 // Mitarbeiter-Pool aktualisieren
@@ -730,7 +791,6 @@ function updateDayButtons() {
 
 // Event Listener initialisieren
 function initializeEventListeners() {
-    // Event Listener für Week Change Buttons hinzufügen
     document.getElementById('prev-week').addEventListener('click', () => {
         changeWeek(-1);
     });
@@ -762,7 +822,7 @@ function initializeEventListeners() {
             if (confirm('Möchten Sie den aktuellen Tag wirklich zurücksetzen?')) {
                 workplaces.forEach(workplace => currentWeek[currentDay][workplace] = []);
                 additionalStatus.forEach(status => currentWeek[currentDay][status] = []);
-                savePlanToLocalStorage(); // Plan im Local Storage aktualisieren
+                savePlanToLocalStorage();
                 updateUI();
             }
         });
@@ -770,7 +830,7 @@ function initializeEventListeners() {
         document.getElementById('reset-week').addEventListener('click', () => {
             if (confirm('Möchten Sie die aktuelle Woche wirklich zurücksetzen?')) {
                 initializeEmptyWeek();
-                savePlanToLocalStorage(); // Plan im Local Storage aktualisieren
+                savePlanToLocalStorage();
                 updateUI();
             }
         });
@@ -778,10 +838,8 @@ function initializeEventListeners() {
         document.getElementById('save-plan').addEventListener('click', async () => {
             try {
                 await savePlan();
-                alert('Wochenplan erfolgreich gespeichert!');
             } catch (error) {
                 console.error('Fehler beim Speichern:', error);
-                alert('Fehler beim Speichern des Wochenplans. Bitte versuchen Sie es erneut.');
             }
         });
 
@@ -793,15 +851,11 @@ function initializeEventListeners() {
             promptForEditorPassword();
         });
     }
+    initializeNotesEventListeners();
 }
 
 function promptForEditorPassword() {
-    const password = prompt('Bitte geben Sie das Passwort ein:');
-    if (password === 'Kandinsky1!') {
-        window.location.href = 'editor.html';
-    } else {
-        alert('Falsches Passwort!');
-    }
+    showPasswordOverlay('editor');
 }
 
 // Woche ändern
@@ -955,7 +1009,7 @@ function exportAsPDF() {
 
         doc.setFontSize(16);
         doc.setTextColor(0);
-        doc.text(`Wochenplan für ${days[day - 1]}, ${formattedDate}`, 10, 25);
+        doc.text(`Arbeitsplatzverteilung für ${days[day - 1]}, ${formattedDate}`, 10, 25);
 
         let yPosition = 35;
         let xPosition = 10;
@@ -974,10 +1028,10 @@ function exportAsPDF() {
             doc.setTextColor(0);
             doc.text(title, xPosition + 3, yPosition + 6);
 
-            doc.setFontSize(12);
-            let staffY = yPosition + 10;
+            doc.setFontSize(10);
+            let staffY = yPosition + 15;
             staffList.forEach(staff => {
-                doc.text(`${staff.type === 'fa' ? 'FA: ' : 'AA: '}${staff.name}`, xPosition + 3, staffY);
+                doc.text(`${staff.type === 'fa' ? 'FA: ' : 'A: '}${staff.name}`, xPosition + 3, staffY);
                 staffY += 4;
             });
         }
