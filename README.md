@@ -100,7 +100,7 @@ Bevor Sie beginnen, stellen Sie sicher, dass Sie über folgende Komponenten verf
 
 1. Klonen Sie das Repository der Wochenplan-Radiologie-Anwendung:
    ```
-   git clone https://github.com/mlurz92/wochenplan-radiologie.git
+   sudo git clone https://github.com/mlurz92/wochenplan-radiologie.git ./wochenplan-radiologie
    ```
 
 2. Wechseln Sie in das Projektverzeichnis:
@@ -110,12 +110,12 @@ Bevor Sie beginnen, stellen Sie sicher, dass Sie über folgende Komponenten verf
 
 3. Installieren Sie die Abhängigkeiten der Anwendung:
    ```
-   npm install
+   sudo npm install
    ```
 
 4. Erstellen Sie eine .env-Datei für Umgebungsvariablen:
    ```
-   nano .env
+   sudo nano .env
    ```
 
 5. Fügen Sie folgende Zeilen in die .env-Datei ein:
