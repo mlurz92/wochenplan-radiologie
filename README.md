@@ -83,7 +83,7 @@ Diese Anwendung dient zur Erstellung und Verwaltung von Wochenplänen für radio
 
 2. **Nginx, SQLite und Certbot installieren**:
    ```bash
-   sudo apt install -y nginx sqlite3 certbot python3-certbot-nginx
+   sudo apt install -y git nginx sqlite3 certbot python3-certbot-nginx
    ```
 
 3. **PM2 installieren**:
