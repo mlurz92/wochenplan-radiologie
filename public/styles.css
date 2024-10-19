@@ -162,6 +162,11 @@ button.unsaved {
     flex: 1;
 }
 
+#sidebar {
+    width: 250px;
+    margin-right: 20px;
+}
+
 #staff-pool {
     width: 180px;
     position: fixed;
@@ -266,12 +271,11 @@ button.unsaved {
 
 #notes-area {
     display: flex;
-    justify-content: space-between;
-    margin-bottom: 20px;
+    flex-direction: column;
+    gap: 20px;
 }
 
 #weekly-notes, #daily-notes {
-    width: 48%;
     background-color: var(--card-color);
     border-radius: 8px;
     padding: 15px;
@@ -295,7 +299,7 @@ button.unsaved {
 }
 
 #button-area {
-    margin-top: 0px;
+    margin-top: 20px;
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
@@ -348,13 +352,19 @@ button.unsaved {
         flex-direction: column;
     }
 
+    #sidebar {
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 20px;
+    }
+
     #notes-area {
-        flex-direction: column;
+        flex-direction: row;
+        justify-content: space-between;
     }
 
     #weekly-notes, #daily-notes {
-        width: 100%;
-        margin-bottom: 20px;
+        width: 48%;
     }
 
     #workplace-cards {
@@ -401,7 +411,16 @@ button.unsaved {
 
     #staff-pool {
         width: auto;
+        position: static;
         margin-bottom: 20px;
+    }
+
+    #notes-area {
+        flex-direction: column;
+    }
+
+    #weekly-notes, #daily-notes {
+        width: 100%;
     }
 }
 
@@ -418,10 +437,7 @@ button.unsaved {
         padding: 6px 12px;
         font-size: 12px;
     }
-}
 
-/* iPhone-spezifische Anpassungen */
-@media (max-width: 414px) {
     #workplace-cards, #additional-status-cards {
         grid-template-columns: repeat(2, 1fr);
         gap: 10px;
@@ -442,15 +458,6 @@ button.unsaved {
     .staff-list-items li {
         font-size: 12px;
         padding: 3px 6px;
-    }
-
-    #notes-area {
-        flex-direction: column;
-    }
-
-    #weekly-notes, #daily-notes {
-        width: 100%;
-        margin-bottom: 10px;
     }
 
     #notes-input, #daily-notes-input {
