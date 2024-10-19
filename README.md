@@ -118,9 +118,9 @@ Diese Anwendung dient zur Erstellung und Verwaltung von Wochenplänen für radio
 
 1. **Repository klonen und Abhängigkeiten installieren**:
    ```bash
-   git clone https://github.com/mlurz92/wochenplan-radiologie.git /srv/wochenplan-radiologie
+   sudo git clone https://github.com/mlurz92/wochenplan-radiologie.git /srv/wochenplan-radiologie
    cd /srv/wochenplan-radiologie
-   npm install
+   sudo npm install
    ```
 
 2. **Datenbank einrichten**:
