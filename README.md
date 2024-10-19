@@ -164,7 +164,7 @@ Diese Anwendung dient zur Erstellung und Verwaltung von Wochenplänen für radio
 
 1. **Machen Sie die Startskripte ausführbar**:
    ```bash
-   chmod +x start_server.sh update_app.sh
+   sudo chmod +x start_server.sh update_app.sh
    ```
 
 ### Schritt 2: Crontab einrichten
