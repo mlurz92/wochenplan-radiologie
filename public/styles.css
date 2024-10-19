@@ -283,8 +283,16 @@ button.unsaved {
 }
 
 #notes-content {
-    white-space: pre-wrap;
-    word-wrap: break-word;
+    width: 250px;
+    background-color: var(--card-color);
+    border-radius: 8px;
+    padding: 15px;
+    margin-right: 20px;
+    border: 1px solid var(--text-color);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    align-self: flex-start;
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
 }
 
 #button-area {
@@ -337,6 +345,17 @@ button.unsaved {
 }
 
 @media (max-width: 1100px) {
+    #main-container {
+        flex-direction: column;
+    }
+
+    #notes-content {
+        width: auto;
+        margin-right: 0;
+        margin-bottom: 20px;
+        max-height: none;
+    }
+    
     #workplace-cards {
         grid-template-columns: repeat(2, 1fr);
     }
