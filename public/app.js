@@ -15,6 +15,7 @@ const staffMembers = {
     aa: ['Becker', 'Fröhlich', 'Martin', 'Torki']
 };
 let currentNotes = '';
+let dailyNotes = { 1: '', 2: '', 3: '', 4: '', 5: '', 6: '', 7: '' };
 
 // Initialisierung der Anwendung
 document.addEventListener('DOMContentLoaded', async () => {
@@ -306,6 +307,7 @@ async function loadPlan() {
                     ...planData
                 };
                 currentNotes = planData.notes || '';
+                dailyNotes = planData.dailyNotes || { 1: '', 2: '', 3: '', 4: '', 5: '', 6: '', 7: '' };
                 updateUI();
                 loadNotes();
             } else if (response.status === 404) {
@@ -424,7 +426,7 @@ function initializeEmptyWeek() {
 
 // Wochenplan speichern
 async function savePlan() {
-    const planData = JSON.stringify({ ...currentWeek, notes: currentNotes });
+    const planData = JSON.stringify({ ...currentWeek, notes: currentNotes, dailyNotes: dailyNotes });
     try {
         const response = await fetch('/api/save-plan', {
             method: 'POST',
@@ -446,24 +448,36 @@ async function savePlan() {
 
 // Funktion zum Speichern der Notizen
 function saveNotes() {
-    const notesInput = document.getElementById('notes-input');
-    if (notesInput) {
-        currentNotes = notesInput.value;
-        savePlan();
+    const weeklyNotesInput = document.getElementById('notes-input');
+    const dailyNotesInput = document.getElementById('daily-notes-input');
+    if (weeklyNotesInput) {
+        currentNotes = weeklyNotesInput.value;
     }
+    if (dailyNotesInput) {
+        dailyNotes[currentDay] = dailyNotesInput.value;
+    }
+    savePlan();
 }
 
 // Funktion zum Laden der Notizen
 function loadNotes() {
-    const notesInput = document.getElementById('notes-input');
-    const notesContent = document.getElementById('notes-content');
+    const weeklyNotesInput = document.getElementById('notes-input');
+    const weeklyNotesContent = document.getElementById('notes-content');
+    const dailyNotesInput = document.getElementById('daily-notes-input');
+    const dailyNotesContent = document.getElementById('daily-notes-content');
     
-    if (notesInput) {
-        notesInput.value = currentNotes;
+    if (weeklyNotesInput) {
+        weeklyNotesInput.value = currentNotes;
+    }
+    if (weeklyNotesContent) {
+        weeklyNotesContent.textContent = currentNotes;
     }
     
-    if (notesContent) {
-        notesContent.textContent = currentNotes;
+    if (dailyNotesInput) {
+        dailyNotesInput.value = dailyNotes[currentDay];
+    }
+    if (dailyNotesContent) {
+        dailyNotesContent.textContent = dailyNotes[currentDay];
     }
 }
 
@@ -701,9 +715,13 @@ function createStaffElement(staff) {
 
 // Event-Listener für Notizen
 function initializeNotesEventListeners() {
-    const notesInput = document.getElementById('notes-input');
-    if (notesInput) {
-        notesInput.addEventListener('input', saveNotes);
+    const weeklyNotesInput = document.getElementById('notes-input');
+    const dailyNotesInput = document.getElementById('daily-notes-input');
+    if (weeklyNotesInput) {
+        weeklyNotesInput.addEventListener('input', saveNotes);
+    }
+    if (dailyNotesInput) {
+        dailyNotesInput.addEventListener('input', saveNotes);
     }
 }
 
@@ -776,6 +794,7 @@ function changeDay(direction) {
     currentDay = newDay;
     updateUI();
     updateDayButtons();
+    loadNotes(); // Notizen für den neuen Tag laden
 }
 
 // Tagesbuttons aktualisieren
