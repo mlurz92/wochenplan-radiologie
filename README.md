@@ -21,6 +21,7 @@ Diese Anleitung führt Sie Schritt für Schritt durch die Installation und Konfi
 13. [Aktualisierung der Anwendung](#13-aktualisierung-der-anwendung)
 14. [Fehlerbehebung und Support](#14-fehlerbehebung-und-support)
 15. [Anhang: Wichtige Dateien und Verzeichnisse](#15-anhang-wichtige-dateien-und-verzeichnisse)
+16. [Lizenz](#16-lizenz)
 
 ---
 
@@ -29,7 +30,7 @@ Diese Anleitung führt Sie Schritt für Schritt durch die Installation und Konfi
 - **Raspberry Pi 4** mit **Raspberry Pi OS (64-bit)**.
 - **Fritz!Box** als Router mit MyFRITZ!-Dienst.
 - **MyFRITZ!-Adresse** für den externen Zugriff (`raspberrypi.hyg6zkbn2mykr1go.myfritz.net`).
-- **Nginx** als Webserver.
+- **Nginx** als Webserver und Reverse Proxy.
 - **PM2** zur Verwaltung der Anwendung.
 - **SQLite** als Datenbank.
 - **Certbot** von Let's Encrypt für die SSL-Zertifizierung.
@@ -225,16 +226,28 @@ Diese Anleitung führt Sie Schritt für Schritt durch die Installation und Konfi
    - Die Anwendung erstellt die SQLite-Datenbank automatisch beim ersten Start.
    - Überprüfen Sie, ob die Datei `wochenplan.db` im Verzeichnis vorhanden ist (wird nach dem ersten Start erstellt).
 
+4. **Skripte ausführbar machen**:
+
+   Stellen Sie sicher, dass die Skripte `start_server.sh` und `update_app.sh` ausführbar sind:
+   ```bash
+   chmod +x start_server.sh update_app.sh
+   ```
+
 ---
 
 ## 8. Einrichtung von PM2 für die Anwendung
 
 1. **Anwendung mit PM2 starten**:
 
-   - Starten Sie die Anwendung:
+   - Starten Sie die Anwendung mit dem bereitgestellten Skript:
      ```bash
-     pm2 start server.js --name wochenplan-radiologie
+     ./start_server.sh
      ```
+     - Alternativ können Sie den Befehl direkt ausführen:
+       ```bash
+       pm2 start server.js --name wochenplan-radiologie --env production
+       ```
+
    - Überprüfen Sie, ob die Anwendung läuft:
      ```bash
      pm2 list
@@ -280,6 +293,19 @@ Diese Anleitung führt Sie Schritt für Schritt durch die Installation und Konfi
          listen 80;
          server_name raspberrypi.hyg6zkbn2mykr1go.myfritz.net;
 
+         # Alle HTTP-Anfragen auf HTTPS umleiten
+         return 301 https://$host$request_uri;
+     }
+
+     server {
+         listen 443 ssl;
+         server_name raspberrypi.hyg6zkbn2mykr1go.myfritz.net;
+
+         ssl_certificate /etc/letsencrypt/live/raspberrypi.hyg6zkbn2mykr1go.myfritz.net/fullchain.pem;
+         ssl_certificate_key /etc/letsencrypt/live/raspberrypi.hyg6zkbn2mykr1go.myfritz.net/privkey.pem;
+         include /etc/letsencrypt/options-ssl-nginx.conf;
+         ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
          location / {
              proxy_pass http://localhost:3000;
              proxy_http_version 1.1;
@@ -300,54 +326,45 @@ Diese Anleitung führt Sie Schritt für Schritt durch die Installation und Konfi
    sudo nginx -t
    sudo systemctl restart nginx
    ```
-
    - **Hinweis**: `nginx -t` testet die Konfiguration auf Fehler.
 
 ---
 
 ## 10. Einrichtung von Let's Encrypt SSL-Zertifikaten
 
-Da Nginx derzeit ohne SSL läuft, können wir nun Certbot verwenden, um ein SSL-Zertifikat zu erhalten und Nginx automatisch zu konfigurieren.
+Nachdem Nginx nun korrekt konfiguriert ist, um sowohl HTTP als auch HTTPS zu bedienen, führen Sie Certbot erneut aus, um das SSL-Zertifikat zu aktualisieren und die Umleitung einzurichten.
 
-1. **Port 80 und 443 sicherstellen**:
+1. **Certbot mit dem Nginx-Plugin ausführen**:
 
-   - Stellen Sie sicher, dass sowohl Port 80 als auch Port 443 auf Ihren Raspberry Pi weitergeleitet werden.
-   - Überprüfen Sie die Firewall-Einstellungen:
-     ```bash
-     sudo ufw allow 'Nginx Full'
-     ```
+   ```bash
+   sudo certbot --nginx -d raspberrypi.hyg6zkbn2mykr1go.myfritz.net
+   ```
 
-2. **Certbot ausführen**:
+2. **Optionen während der Certbot-Ausführung wählen**:
 
-   - Führen Sie Certbot mit dem Nginx-Plugin aus:
+   Während der Ausführung von Certbot werden Sie gefragt, wie Sie den Webserver konfigurieren möchten. Da Sie bereits einen separaten Server-Block für HTTP erstellt haben, wählen Sie **Keine Änderungen an der Webserver-Konfiguration vornehmen** oder bestätigen Sie die vorhandene HTTPS-Konfiguration.
 
-     ```bash
-     sudo certbot --nginx -d raspberrypi.hyg6zkbn2mykr1go.myfritz.net
-     ```
+3. **Manuelle Einrichtung der Umleitung (falls erforderlich)**:
 
-   - Folgen Sie den Anweisungen von Certbot:
+   Falls Certbot die Umleitung nicht automatisch einrichten kann, haben Sie bereits einen separaten Server-Block für die Umleitung erstellt (siehe [Einrichtung von Nginx als Reverse Proxy](#9-einrichtung-von-nginx-als-reverse-proxy)). Stellen Sie sicher, dass dieser Block korrekt konfiguriert ist.
 
-     - **E-Mail-Adresse** eingeben (für wichtige Benachrichtigungen).
-     - Den **Nutzungsbedingungen** zustimmen.
-     - Wählen Sie aus, ob Sie HTTP auf HTTPS umleiten möchten (empfohlen).
+4. **Überprüfung der Nginx-Konfiguration**:
 
-3. **Überprüfung der Nginx-Konfiguration**:
-
-   - Testen Sie die Nginx-Konfiguration erneut:
-     ```bash
-     sudo nginx -t
-     ```
-   - Starten Sie Nginx neu:
+   Testen Sie die Nginx-Konfiguration erneut:
+   ```bash
+   sudo nginx -t
+   ```
+   - Bei erfolgreichem Test starten Sie Nginx neu:
      ```bash
      sudo systemctl restart nginx
      ```
 
-4. **SSL-Zertifikate überprüfen**:
+5. **SSL-Zertifikate überprüfen**:
 
-   - Die SSL-Zertifikate sollten nun unter folgendem Pfad vorhanden sein:
-     ```
-     /etc/letsencrypt/live/raspberrypi.hyg6zkbn2mykr1go.myfritz.net/
-     ```
+   Die SSL-Zertifikate sollten nun unter folgendem Pfad vorhanden sein:
+   ```
+   /etc/letsencrypt/live/raspberrypi.hyg6zkbn2mykr1go.myfritz.net/
+   ```
 
 ---
 
@@ -358,15 +375,43 @@ Da Nginx derzeit ohne SSL läuft, können wir nun Certbot verwenden, um ein SSL-
    ```bash
    sudo certbot renew --dry-run
    ```
+   - **Erwartete Ausgabe:**
+     ```
+     - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+     Processing /etc/letsencrypt/renewal/raspberrypi.hyg6zkbn2mykr1go.myfritz.net.conf
+     ...
+     Congratulations, all renewals succeeded. The following certs have been renewed:
+       /etc/letsencrypt/live/raspberrypi.hyg6zkbn2mykr1go.myfritz.net/fullchain.pem (success)
+     - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+     ```
 
-   - Wenn keine Fehler auftreten, ist die automatische Erneuerung korrekt eingerichtet.
+2. **Certbot-Timer überprüfen**:
 
-2. **Cronjob für Certbot überprüfen**:
+   Certbot richtet normalerweise einen Systemd-Timer ein, um die Zertifikate automatisch zu erneuern. Überprüfen Sie, ob dieser aktiv ist:
 
-   - Certbot erstellt automatisch einen Cronjob für die Erneuerung.
-   - Sie können den Timer mit folgendem Befehl anzeigen:
+   ```bash
+   sudo systemctl list-timers | grep certbot
+   ```
+   - **Erwartete Ausgabe:**
+     ```
+     Wed 2024-10-23 03:00:00 UTC  certbot.timer          certbot.service         active waiting
+     ```
+
+   - **Falls kein Timer vorhanden ist:**
+     - Richten Sie den Timer manuell ein:
+       ```bash
+       sudo systemctl enable certbot.timer
+       sudo systemctl start certbot.timer
+       ```
+
+3. **Manuelles Erneuern der Zertifikate (falls erforderlich)**:
+
+   ```bash
+   sudo certbot renew
+   ```
+   - Nach der Erneuerung starten Sie Nginx neu, um die neuen Zertifikate zu laden:
      ```bash
-     sudo systemctl list-timers
+     sudo systemctl restart nginx
      ```
 
 ---
@@ -395,26 +440,24 @@ Da Nginx derzeit ohne SSL läuft, können wir nun Certbot verwenden, um ein SSL-
 
 ## 13. Aktualisierung der Anwendung
 
-1. **In das Anwendungsverzeichnis wechseln**:
+Die Anwendung kann einfach aktualisiert werden, indem Sie das bereitgestellte Update-Skript verwenden.
 
-   ```bash
-   cd /srv/wochenplan-radiologie
-   ```
+1. **Update-Skript ausführen**:
 
-2. **Code aktualisieren und Abhängigkeiten installieren**:
+   - Führen Sie das Update-Skript aus, um den neuesten Code zu ziehen, Abhängigkeiten zu installieren und die Anwendung neu zu starten:
+     ```bash
+     ./update_app.sh
+     ```
+   - Alternativ können Sie die Befehle manuell ausführen:
+     ```bash
+     cd /srv/wochenplan-radiologie
+     git pull
+     npm install
+     chmod +x start_server.sh update_app.sh
+     pm2 restart wochenplan-radiologie --env production
+     ```
 
-   ```bash
-   git pull
-   npm install
-   ```
-
-3. **Anwendung neu starten**:
-
-   ```bash
-   pm2 restart wochenplan-radiologie
-   ```
-
-4. **Nginx-Konfiguration neu laden (falls geändert)**:
+2. **Nginx-Konfiguration neu laden (falls geändert)**:
 
    ```bash
    sudo nginx -t
@@ -435,6 +478,7 @@ Da Nginx derzeit ohne SSL läuft, können wir nun Certbot verwenden, um ein SSL-
   ```bash
   pm2 logs wochenplan-radiologie
   ```
+  - Überprüfen Sie auf Fehlermeldungen und beheben Sie diese entsprechend.
 
 ### Nginx startet nicht
 
@@ -466,32 +510,40 @@ Da Nginx derzeit ohne SSL läuft, können wir nun Certbot verwenden, um ein SSL-
   ```
 - **MyFRITZ!-Status überprüfen**.
 
----
 
 ## 15. Anhang: Wichtige Dateien und Verzeichnisse
 
 - **Anwendungsverzeichnis**: `/srv/wochenplan-radiologie/`
+- **Start-Skript**: `start_server.sh`
+- **Update-Skript**: `update_app.sh`
 - **Nginx-Konfiguration**: `/etc/nginx/sites-available/wochenplan-radiologie`
 - **SSL-Zertifikate**: `/etc/letsencrypt/live/raspberrypi.hyg6zkbn2mykr1go.myfritz.net/`
 - **PM2-Prozessliste**: Gespeichert unter `/home/pi/.pm2/`
 - **Nginx-Logs**: `/var/log/nginx/`
+- **Datenbank**: `wochenplan.db` (wird automatisch erstellt)
 
----
+### Wichtige Dateien im Anwendungsverzeichnis
 
-**Hinweis**: Diese Anleitung wurde sorgfältig erstellt, um alle notwendigen Schritte abzudecken und Fehler zu vermeiden. Sollten dennoch Probleme auftreten, zögern Sie nicht, professionelle Unterstützung in Anspruch zu nehmen oder die offizielle Dokumentation der verwendeten Software zu konsultieren.
-
----
-
-**Viel Erfolg bei der Einrichtung Ihrer Anwendung!**
-
----
-
-**Überprüfung der Anleitung**
-
-- **Aktualität**: Alle Schritte basieren auf aktuellen Softwareversionen und Best Practices.
-- **Korrektheit**: Die Anleitung wurde überprüft, um Fehler zu vermeiden.
-- **Reihenfolge**: Die Schritte sind in logischer und notwendiger Reihenfolge angeordnet.
-- **Vollständigkeit**: Jeder notwendige Schritt von Anfang bis Ende ist abgedeckt.
-- **Anfängerfreundlich**: Die Anleitung ist für unerfahrene Benutzer verständlich geschrieben und erklärt jeden Schritt ausführlich.
+```
+/srv/wochenplan-radiologie/
+│
+├── public/
+│   ├── index.html
+│   ├── editor.html
+│   ├── styles.css
+│   └── app.js
+│
+├── node_modules/  (wird durch npm install generiert)
+│
+├── server.js
+├── package.json
+├── package-lock.json
+├── .gitignore
+├── .env
+├── wochenplan.db  (wird automatisch erstellt)
+├── start_server.sh
+├── README.md
+└── update_app.sh
+```
 
 ---
