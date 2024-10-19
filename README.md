@@ -83,7 +83,7 @@ Diese Anwendung dient zur Erstellung und Verwaltung von Wochenplänen für radio
 
 2. **Nginx, SQLite und Certbot installieren**:
    ```bash
-   sudo apt install -y git nginx sqlite3 certbot python3-certbot-nginx
+   sudo apt install -y nginx sqlite3 certbot python3-certbot-nginx
    ```
 
 3. **PM2 installieren**:
@@ -118,9 +118,9 @@ Diese Anwendung dient zur Erstellung und Verwaltung von Wochenplänen für radio
 
 1. **Repository klonen und Abhängigkeiten installieren**:
    ```bash
-   sudo git clone https://github.com/mlurz92/wochenplan-radiologie.git /srv/wochenplan-radiologie
+   git clone https://github.com/mlurz92/wochenplan-radiologie.git /srv/wochenplan-radiologie
    cd /srv/wochenplan-radiologie
-   sudo npm install
+   npm install
    ```
 
 2. **Datenbank einrichten**:
@@ -129,11 +129,62 @@ Diese Anwendung dient zur Erstellung und Verwaltung von Wochenplänen für radio
    ```
    - Führen Sie SQL-Befehle aus, um die Tabellen zu erstellen (Details in der Anwendung).
 
-3. **Anwendung mit PM2 starten**:
+## Starten der Anwendung
+
+### Schritt 1: Anwendung mit PM2 starten
+
+1. **Starten Sie die Anwendung**:
    ```bash
-   sudo pm2 start server.js --name wochenplan-radiologie
-   sudo pm2 save
+   pm2 start server.js --name wochenplan-radiologie
    ```
+
+2. **Überprüfen Sie, ob die Anwendung läuft**:
+   ```bash
+   pm2 list
+   ```
+   Sie sollten einen Eintrag für "wochenplan-radiologie" mit dem Status "online" sehen.
+
+### Schritt 2: PM2 für automatischen Start konfigurieren
+
+1. **Generieren Sie einen Startup-Script mit PM2**:
+   ```bash
+   pm2 startup systemd
+   ```
+
+2. Kopieren Sie den ausgegebenen Befehl und führen Sie ihn aus.
+
+3. **Speichern Sie die aktuelle PM2-Konfiguration**:
+   ```bash
+   pm2 save
+   ```
+
+## Automatischer Start bei Systemstart
+
+### Schritt 1: Startskripte ausführbar machen
+
+1. **Machen Sie die Startskripte ausführbar**:
+   ```bash
+   chmod +x start_server.sh update_app.sh
+   ```
+
+### Schritt 2: Crontab einrichten
+
+1. **Öffnen Sie die Crontab zur Bearbeitung**:
+   ```bash
+   crontab -e
+   ```
+
+2. Wenn Sie gefragt werden, welchen Editor Sie verwenden möchten, wählen Sie "nano" durch Eingabe der entsprechenden Nummer.
+
+3. **Fügen Sie am Ende der Datei folgende Zeile hinzu**:
+   ```bash
+   @reboot /srv/wochenplan-radiologie/start_server.sh
+   ```
+
+4. Speichern Sie die Datei und verlassen Sie den Editor:
+   - Drücken Sie STRG+X
+   - Drücken Sie Y, um die Änderungen zu bestätigen
+   - Drücken Sie Enter, um den Dateinamen zu bestätigen
 
 ## SSL-Zertifikat einrichten
 
