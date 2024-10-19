@@ -129,7 +129,7 @@ Bevor Sie beginnen, stellen Sie sicher, dass Sie über folgende Komponenten verf
 
 6. Machen Sie die Start- und Update-Skripte ausführbar:
    ```
-   chmod +x start_server.sh update_app.sh
+   sudo chmod +x start_server.sh update_app.sh
    ```
 
 ### Schritt 4: Konfiguration des Webservers
