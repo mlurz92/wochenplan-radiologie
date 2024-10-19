@@ -24,31 +24,29 @@ const db = new sqlite3.Database('./wochenplan.db', (err) => {
 // Datenbanktabelle initialisieren
 function initializeDatabase() {
   db.run(`CREATE TABLE IF NOT EXISTS wochenplaene (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      year INTEGER,
-      week INTEGER,
-      plan TEXT,
-      notes TEXT,
-      dailyNotes TEXT,
-      UNIQUE(year, week)
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    year INTEGER,
+    week INTEGER,
+    plan TEXT,
+    notes TEXT,
+    UNIQUE(year, week)
   )`);
 }
 
 // Wochenplan speichern
 app.post('/api/save-plan', (req, res) => {
-  const { year, week, notes, dailyNotes, ...planData } = req.body;
+  const { year, week, notes, ...planData } = req.body;
   const planJson = JSON.stringify(planData);
-  const dailyNotesJson = JSON.stringify(dailyNotes);
 
-  db.run(`INSERT OR REPLACE INTO wochenplaene (year, week, plan, notes, dailyNotes) VALUES (?, ?, ?, ?, ?)`,
-      [year, week, planJson, notes, dailyNotesJson],
-      function(err) {
-          if (err) {
-              res.status(500).json({ error: 'Fehler beim Speichern des Plans' });
-              return console.error(err.message);
-          }
-          res.json({ message: 'Plan erfolgreich gespeichert', id: this.lastID });
+  db.run(`INSERT OR REPLACE INTO wochenplaene (year, week, plan, notes) VALUES (?, ?, ?, ?)`,
+    [year, week, planJson, notes],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: 'Fehler beim Speichern des Plans' });
+        return console.error(err.message);
       }
+      res.json({ message: 'Plan erfolgreich gespeichert', id: this.lastID });
+    }
   );
 });
 
@@ -56,22 +54,19 @@ app.post('/api/save-plan', (req, res) => {
 app.get('/api/load-plan', (req, res) => {
   const { year, week } = req.query;
 
-  db.get(`SELECT plan, notes, dailyNotes FROM wochenplaene WHERE year = ? AND week = ?`, [year, week], (err, row) => {
-      if (err) {
-          res.status(500).json({ error: 'Fehler beim Laden des Plans' });
-          return console.error(err.message);
-      }
-      if (row) {
-          res.json({
-              ...JSON.parse(row.plan),
-              notes: row.notes,
-              dailyNotes: JSON.parse(row.dailyNotes)
-          });
-      } else {
-          res.status(404).json({ error: 'Plan nicht gefunden' });
-      }
+  db.get(`SELECT plan, notes FROM wochenplaene WHERE year = ? AND week = ?`, [year, week], (err, row) => {
+    if (err) {
+      res.status(500).json({ error: 'Fehler beim Laden des Plans' });
+      return console.error(err.message);
+    }
+    if (row) {
+      res.json({ ...JSON.parse(row.plan), notes: row.notes });
+    } else {
+      res.status(404).json({ error: 'Plan nicht gefunden' });
+    }
   });
 });
+
 
 // Alle Wochenpläne abrufen
 app.get('/api/get-all-plans', (req, res) => {
