@@ -131,7 +131,7 @@ Diese Anwendung dient zur Erstellung und Verwaltung von Wochenplänen für radio
 
 3. **Anwendung mit PM2 starten**:
    ```bash
-   sudo pm2 start app.js --name wochenplan
+   sudo pm2 start server.js --name wochenplan-radiologie
    sudo pm2 save
    ```
 
