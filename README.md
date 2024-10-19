@@ -100,12 +100,12 @@ Bevor Sie beginnen, stellen Sie sicher, dass Sie über folgende Komponenten verf
 
 1. Klonen Sie das Repository der Wochenplan-Radiologie-Anwendung:
    ```
-   sudo git clone https://github.com/mlurz92/wochenplan-radiologie.git ./wochenplan-radiologie
+   sudo git clone https://github.com/mlurz92/wochenplan-radiologie.git /srv/wochenplan-radiologie
    ```
 
 2. Wechseln Sie in das Projektverzeichnis:
    ```
-   cd wochenplan-radiologie
+   cd /srv/wochenplan-radiologie
    ```
 
 3. Installieren Sie die Abhängigkeiten der Anwendung:
@@ -120,8 +120,10 @@ Bevor Sie beginnen, stellen Sie sicher, dass Sie über folgende Komponenten verf
 
 5. Fügen Sie folgende Zeilen in die .env-Datei ein:
    ```
-   PORT=3000
+   PORT=443
+   HOST=0.0.0.0
    NODE_ENV=production
+   DATABASE_URL=/srv/wochenplan-radiologie/wochenplan.db
    ```
    Drücken Sie Strg+X, dann Y und Enter, um die Datei zu speichern und den Editor zu verlassen.
 
@@ -145,18 +147,22 @@ Bevor Sie beginnen, stellen Sie sicher, dass Sie über folgende Komponenten verf
 3. Fügen Sie folgenden Inhalt in die Konfigurationsdatei ein:
    ```nginx
    server {
-       listen 80;
-       server_name [Ihre-MyFRITZ-Adresse];
+    listen 443 ssl;
+    server_name raspberrypi.hyg6zkbn2mykr1go.myfritz.net;
+    
+    ssl_certificate /etc/letsencrypt/live/raspberrypi.hyg6zkbn2mykr1go.myfritz.net/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/raspberrypi.hyg6zkbn2mykr1go.myfritz.net/privkey.pem;
 
-       location / {
-           proxy_pass http://localhost:3000;
-           proxy_http_version 1.1;
-           proxy_set_header Upgrade $http_upgrade;
-           proxy_set_header Connection 'upgrade';
-           proxy_set_header Host $host;
-           proxy_cache_bypass $http_upgrade;
-       }
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+      }
    }
+
    ```
    WICHTIG: Ersetzen Sie [Ihre-MyFRITZ-Adresse] mit Ihrer tatsächlichen MyFRITZ-Adresse.
    Beispiel: Wenn Ihre MyFRITZ-Adresse "raspberrypi.hyg6zkbn2mykr1go.myfritz.net" ist, sollte die Zeile so aussehen:
@@ -167,7 +173,7 @@ Bevor Sie beginnen, stellen Sie sicher, dass Sie über folgende Komponenten verf
 
 4. Aktivieren Sie die Konfiguration, indem Sie einen symbolischen Link erstellen:
    ```
-   sudo ln -s /etc/nginx/sites-available/wochenplan-radiologie /etc/nginx/sites-enabled
+   sudo ln -s /etc/nginx/sites-available/wochenplan-radiologie /etc/nginx/sites-enabled/
    ```
 
 5. Testen Sie die Nginx-Konfiguration auf Fehler:
