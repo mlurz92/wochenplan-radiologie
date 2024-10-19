@@ -21,7 +21,6 @@ Diese Anleitung führt Sie Schritt für Schritt durch die Installation und Konfi
 13. [Aktualisierung der Anwendung](#13-aktualisierung-der-anwendung)
 14. [Fehlerbehebung und Support](#14-fehlerbehebung-und-support)
 15. [Anhang: Wichtige Dateien und Verzeichnisse](#15-anhang-wichtige-dateien-und-verzeichnisse)
-16. [Lizenz](#16-lizenz)
 
 ---
 
