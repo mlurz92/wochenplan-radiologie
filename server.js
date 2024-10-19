@@ -4,6 +4,8 @@ const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
 const bodyParser = require('body-parser');
 const path = require('path');
+const https = require('https');
+const fs = require('fs');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -67,14 +69,13 @@ app.get('/api/load-plan', (req, res) => {
   });
 });
 
-// **Neuer Endpoint: Alle Wochenpläne abrufen**
+// Alle Wochenpläne abrufen
 app.get('/api/get-all-plans', (req, res) => {
   db.all(`SELECT year, week, plan FROM wochenplaene`, [], (err, rows) => {
     if (err) {
       res.status(500).json({ error: 'Fehler beim Abrufen der Wochenpläne' });
       return console.error(err.message);
     }
-    // Parse die Plan-Daten aus JSON-Strings
     const plans = rows.map(row => ({
       year: row.year,
       week: row.week,
@@ -92,6 +93,13 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(port, '127.0.0.1', () => {
-  console.log(`Server läuft auf http://127.0.0.1:${port}`);
+// SSL-Zertifikate einbinden
+const options = {
+  key: fs.readFileSync('/etc/letsencrypt/live/raspberrypi.hyg6zkbn2myfritz.net/privkey.pem'),
+  cert: fs.readFileSync('/etc/letsencrypt/live/raspberrypi.hyg6zkbn2myfritz.net/fullchain.pem')
+};
+
+// HTTPS-Server starten
+https.createServer(options, app).listen(port, '0.0.0.0', () => {
+  console.log(`Server läuft auf https://0.0.0.0:${port}`);
 });
