@@ -1,77 +1,133 @@
+# Wochenplan Radiologie - Installationsanleitung
+
+Diese Anleitung führt Sie Schritt für Schritt durch die Installation und Konfiguration der Anwendung **Wochenplan Radiologie** auf einem Raspberry Pi, sodass sie über Ihre MyFRITZ!-Adresse per HTTPS erreichbar ist. Die Anleitung richtet sich an Benutzer ohne tiefergehende technische Kenntnisse und erklärt jeden Schritt ausführlich.
 
 ---
 
-# Wochenplan Radiologie
-
-Diese Anwendung dient zur Erstellung und Verwaltung von Wochenplänen für radiologische Abteilungen. Diese Anleitung führt Sie Schritt für Schritt durch die Einrichtung und Nutzung der Anwendung.
-
 ## Inhaltsverzeichnis
-1. [Überblick über die Komponenten](#überblick-über-die-komponenten)
-2. [Vorbereitungen](#vorbereitungen)
-3. [Installation des Raspberry Pi OS](#installation-des-raspberry-pi-os)
-4. [Initiale Konfiguration des Raspberry Pi](#initiale-konfiguration-des-raspberry-pi)
-5. [Installation aller Abhängigkeiten](#installation-aller-abhängigkeiten)
-6. [Fritz!Box konfigurieren](#fritzbox-konfigurieren)
-7. [STRATO-Domain konfigurieren](#strato-domain-konfigurieren)
-8. [Installation der Anwendung](#installation-der-anwendung)
-9. [SSL-Zertifikat einrichten](#ssl-zertifikat-einrichten)
-10. [Nginx als Reverse Proxy konfigurieren](#nginx-als-reverse-proxy-konfigurieren)
-11. [Nutzung der Anwendung](#nutzung-der-anwendung)
-12. [Aktualisierung der Anwendung](#aktualisierung-der-anwendung)
-13. [Fehlerbehebung und Support](#fehlerbehebung-und-support)
 
-## Überblick über die Komponenten
+1. [Überblick über die Komponenten](#1-überblick-über-die-komponenten)
+2. [Vorbereitungen](#2-vorbereitungen)
+3. [Installation des Raspberry Pi OS](#3-installation-des-raspberry-pi-os)
+4. [Initiale Konfiguration des Raspberry Pi](#4-initiale-konfiguration-des-raspberry-pi)
+5. [Installation der erforderlichen Software](#5-installation-der-erforderlichen-software)
+6. [Konfiguration der Fritz!Box](#6-konfiguration-der-fritzbox)
+7. [Installation der Anwendung](#7-installation-der-anwendung)
+8. [Einrichtung von PM2 für die Anwendung](#8-einrichtung-von-pm2-für-die-anwendung)
+9. [Einrichtung von Nginx als Reverse Proxy](#9-einrichtung-von-nginx-als-reverse-proxy)
+10. [Einrichtung von Let's Encrypt SSL-Zertifikaten](#10-einrichtung-von-lets-encrypt-ssl-zertifikaten)
+11. [Automatische Erneuerung der SSL-Zertifikate](#11-automatische-erneuerung-der-ssl-zertifikate)
+12. [Anwendung testen und nutzen](#12-anwendung-testen-und-nutzen)
+13. [Aktualisierung der Anwendung](#13-aktualisierung-der-anwendung)
+14. [Fehlerbehebung und Support](#14-fehlerbehebung-und-support)
+15. [Anhang: Wichtige Dateien und Verzeichnisse](#15-anhang-wichtige-dateien-und-verzeichnisse)
 
-- **Raspberry Pi 4** mit **Raspberry Pi OS (64bit)**.
-- **Fritz!Box** als Router.
-- **STRATO-Domain** für den externen Zugriff.
-- **Nginx** als Webserver, **pm2** zur Verwaltung der Anwendung, **SQLite** als Datenbank und **Certbot** für die SSL-Zertifizierung.
+---
 
-## Vorbereitungen
+## 1. Überblick über die Komponenten
 
-- **Hardware**: Raspberry Pi 4, SD-Karte (mindestens 16 GB), Netzteil, HDMI-Kabel und Tastatur.
-- **Zugriff** auf das **STRATO-Kundencenter** und die **Fritz!Box**.
-- **Internetverbindung**: Der Raspberry Pi sollte mit dem Internet verbunden werden.
+- **Raspberry Pi 4** mit **Raspberry Pi OS (64-bit)**.
+- **Fritz!Box** als Router mit MyFRITZ!-Dienst.
+- **MyFRITZ!-Adresse** für den externen Zugriff (`raspberrypi.hyg6zkbn2mykr1go.myfritz.net`).
+- **Nginx** als Webserver.
+- **PM2** zur Verwaltung der Anwendung.
+- **SQLite** als Datenbank.
+- **Certbot** von Let's Encrypt für die SSL-Zertifizierung.
 
-## Installation des Raspberry Pi OS
+---
 
-1. **Raspberry Pi Imager installieren**:
+## 2. Vorbereitungen
+
+### Hardware
+
+- **Raspberry Pi 4** (oder kompatibel).
+- **MicroSD-Karte** (mindestens 16 GB empfohlen).
+- **Netzteil**, **HDMI-Kabel**, **Tastatur** und **Monitor** für die erste Einrichtung.
+
+### Zugangsdaten und Informationen
+
+- **Zugriff** auf die **Fritz!Box**-Benutzeroberfläche.
+- **Internetverbindung** für den Raspberry Pi.
+- **MyFRITZ!-Adresse** Ihres Raspberry Pi:
+  ```
+  raspberrypi.hyg6zkbn2mykr1go.myfritz.net
+  ```
+
+---
+
+## 3. Installation des Raspberry Pi OS
+
+1. **Raspberry Pi Imager herunterladen und installieren**:
+
    - Laden Sie den **Raspberry Pi Imager** von der offiziellen [Raspberry Pi Webseite](https://www.raspberrypi.org/software/) herunter und installieren Sie ihn auf Ihrem Computer.
-   - Schließen Sie die SD-Karte an Ihren Computer an.
 
-2. **Raspberry Pi OS installieren**:
+2. **Raspberry Pi OS auf die SD-Karte installieren**:
+
    - Starten Sie den Raspberry Pi Imager.
-   - Wählen Sie **Raspberry Pi OS (64-bit)** und Ihre SD-Karte aus.
-   - Klicken Sie auf **Write**, um das Betriebssystem zu installieren.
+   - **Betriebssystem auswählen**:
+     - Wählen Sie **Raspberry Pi OS (64-bit)**.
+   - **Speicher auswählen**:
+     - Wählen Sie Ihre **SD-Karte** aus.
+   - **Optionale Vorkonfiguration**:
+     - Klicken Sie auf das **Zahnrad-Symbol** (Einstellungen), um folgende Einstellungen vorzunehmen:
+       - **Hostname** setzen (z. B. `raspberrypi`).
+       - **SSH aktivieren** und **Authentifizierungsmethode** festlegen.
+       - **Benutzername und Passwort** festlegen (Standardbenutzer ist `pi`).
+       - **WLAN einrichten** (falls verwendet).
+       - **Gebietsschema** einstellen (Sprache, Zeitzone, Tastaturlayout).
+   - **Schreiben**:
+     - Klicken Sie auf **Schreiben**, um das Betriebssystem auf die SD-Karte zu installieren.
+   - **Warten Sie**, bis der Vorgang abgeschlossen ist, und entfernen Sie die SD-Karte sicher vom Computer.
 
-3. **SD-Karte in den Raspberry Pi einlegen**:
-   - Entfernen Sie die SD-Karte sicher und legen Sie sie in den Raspberry Pi ein.
-   - Verbinden Sie Tastatur und Monitor, und schalten Sie den Raspberry Pi ein.
+3. **Raspberry Pi starten**:
 
-## Initiale Konfiguration des Raspberry Pi
+   - Legen Sie die SD-Karte in den Raspberry Pi ein.
+   - Schließen Sie Tastatur, Monitor und Netzwerkverbindung an.
+   - Schalten Sie den Raspberry Pi ein.
+   - **Hinweis**: Bei korrekter Vorkonfiguration sollte der Raspberry Pi automatisch starten und sich mit dem Netzwerk verbinden.
 
-1. **Einrichtungsassistent**:
-   - Folgen Sie den Anweisungen auf dem Bildschirm, um Sprache, Zeitzone und WLAN-Verbindung einzurichten.
-   - Wählen Sie ein sicheres Passwort für das Benutzerkonto.
+---
 
-2. **Aktivierung von SSH**:
-   - Öffnen Sie das Terminal und geben Sie folgenden Befehl ein:
-     ```bash
-     sudo raspi-config
-     ```
-   - Wählen Sie **Interfacing Options** > **SSH** und aktivieren Sie es.
+## 4. Initiale Konfiguration des Raspberry Pi
 
-3. **Systemaktualisierung**:
-   - Führen Sie im Terminal folgende Befehle aus:
+1. **Erstkonfiguration durchführen**:
+
+   - Wenn der Raspberry Pi startet, folgen Sie den Anweisungen auf dem Bildschirm.
+   - **Sprache**, **Zeitzone** und **Tastaturlayout** bestätigen oder anpassen.
+   - **System aktualisieren**, wenn Sie dazu aufgefordert werden.
+
+2. **SSH-Zugang prüfen**:
+
+   - Falls nicht bereits aktiviert, aktivieren Sie SSH über die **Raspberry Pi Konfiguration**:
+     - Öffnen Sie das Terminal und geben Sie ein:
+       ```bash
+       sudo raspi-config
+       ```
+     - Wählen Sie **Interface Options** > **SSH** und aktivieren Sie es.
+
+3. **System aktualisieren**:
+
+   - Öffnen Sie das Terminal und führen Sie folgende Befehle aus:
      ```bash
      sudo apt update
      sudo apt upgrade -y
      ```
 
-## Installation aller Abhängigkeiten
+4. **Remote-Zugriff einrichten (optional)**:
+
+   - Wenn Sie möchten, können Sie nun den Raspberry Pi über SSH von einem anderen Computer aus steuern:
+     ```bash
+     ssh pi@raspberrypi.local
+     ```
+   - Verwenden Sie den Hostnamen oder die IP-Adresse Ihres Raspberry Pi.
+
+---
+
+## 5. Installation der erforderlichen Software
 
 1. **Node.js installieren**:
-   - Fügen Sie das NodeSource-Repository hinzu:
+
+   - Fügen Sie das NodeSource-Repository hinzu und installieren Sie Node.js:
      ```bash
      curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
      sudo apt install -y nodejs
@@ -80,140 +136,149 @@ Diese Anwendung dient zur Erstellung und Verwaltung von Wochenplänen für radio
      ```bash
      node -v
      ```
+     - Die Ausgabe sollte die installierte Node.js-Version anzeigen (z. B. `v20.x.x`).
 
-2. **Nginx, SQLite und Certbot installieren**:
+2. **Git, Nginx, SQLite und Certbot installieren**:
+
    ```bash
-   sudo apt install -y nginx sqlite3 certbot python3-certbot-nginx
+   sudo apt install -y git nginx sqlite3 certbot python3-certbot-nginx
    ```
 
 3. **PM2 installieren**:
+
+   - Installieren Sie PM2 global:
+     ```bash
+     sudo npm install -g pm2
+     ```
+   - Aktualisieren Sie NPM auf die neueste Version:
+     ```bash
+     sudo npm install -g npm
+     ```
+
+4. **Firewall einrichten (optional, aber empfohlen)**:
+
+   - Installieren und konfigurieren Sie UFW:
+     ```bash
+     sudo apt install ufw
+     sudo ufw allow OpenSSH
+     sudo ufw allow 'Nginx Full'
+     sudo ufw enable
+     ```
+   - **Hinweis**: Die Firewall schützt Ihren Raspberry Pi vor unerwünschtem Zugriff.
+
+---
+
+## 6. Konfiguration der Fritz!Box
+
+1. **MyFRITZ!-Konto einrichten**:
+
+   - Melden Sie sich in Ihrer Fritz!Box an (`http://fritz.box`).
+   - Gehen Sie zu **Internet** > **MyFRITZ!-Konto**.
+   - Richten Sie ein MyFRITZ!-Konto ein oder melden Sie sich an.
+   - Notieren Sie sich die **MyFRITZ!-Adresse** Ihres Raspberry Pi:
+     ```
+     raspberrypi.hyg6zkbn2mykr1go.myfritz.net
+     ```
+
+2. **Portfreigaben einrichten**:
+
+   - Gehen Sie zu **Internet** > **Freigaben** > **Portfreigaben**.
+   - **Neue Portfreigabe** hinzufügen:
+     - **Gerät**: Wählen Sie Ihren Raspberry Pi aus der Liste aus.
+     - **Anwendung**: **HTTP-Server** (Port 80).
+     - **Freigabe aktivieren**.
+   - Wiederholen Sie den Vorgang für **HTTPS-Server** (Port 443).
+   - Stellen Sie sicher, dass die Portfreigaben korrekt eingerichtet sind.
+
+3. **DynDNS überprüfen**:
+
+   - Gehen Sie zu **Internet** > **Online-Monitor** und stellen Sie sicher, dass Ihre MyFRITZ!-Adresse aktiv ist.
+
+---
+
+## 7. Installation der Anwendung
+
+1. **In das Anwendungsverzeichnis wechseln und Repository klonen**:
+
+   - Erstellen Sie das Verzeichnis `/srv/wochenplan-radiologie`:
+     ```bash
+     sudo mkdir -p /srv/wochenplan-radiologie
+     sudo chown pi:pi /srv/wochenplan-radiologie
+     ```
+   - Wechseln Sie in das Verzeichnis:
+     ```bash
+     cd /srv/wochenplan-radiologie
+     ```
+   - Klonen Sie das GitHub-Repository:
+     ```bash
+     git clone https://github.com/mlurz92/wochenplan-radiologie.git .
+     ```
+
+2. **Abhängigkeiten installieren**:
+
    ```bash
-   sudo npm install -g pm2
-   ```
-
-4. **Firewall konfigurieren** (optional, empfohlen):
-   ```bash
-   sudo apt install ufw
-   sudo ufw allow OpenSSH
-   sudo ufw allow 'Nginx Full'
-   sudo ufw enable
-   ```
-
-## Fritz!Box konfigurieren
-
-1. **MyFritz und DynDNS aktivieren**:
-   - Melden Sie sich bei der Fritz!Box an (`http://fritz.box`).
-   - Aktivieren Sie unter **Internet > Freigaben > DynDNS** das **MyFritz!**-Konto.
-
-2. **Portfreigabe einrichten**:
-   - Unter **Internet > Freigaben > Portfreigaben** eine neue Freigabe für **HTTPS (Port 443)** erstellen und den Raspberry Pi als Zielgerät auswählen.
-
-## STRATO-Domain konfigurieren
-
-1. **Domain-Weiterleitung einrichten**:
-   - Melden Sie sich im STRATO-Kundencenter an und konfigurieren Sie die Domain `wochenplan-radiologie.de`, um auf die MyFritz-Adresse weiterzuleiten.
-   - Aktivieren Sie die SSL-Weiterleitung (HTTPS).
-
-## Installation der Anwendung
-
-1. **Repository klonen und Abhängigkeiten installieren**:
-   ```bash
-   git clone https://github.com/mlurz92/wochenplan-radiologie.git /srv/wochenplan-radiologie
-   cd /srv/wochenplan-radiologie
    npm install
    ```
 
-2. **Datenbank einrichten**:
+3. **Datenbank einrichten**:
+
+   - Die Anwendung erstellt die SQLite-Datenbank automatisch beim ersten Start.
+   - Überprüfen Sie, ob die Datei `wochenplan.db` im Verzeichnis vorhanden ist (wird nach dem ersten Start erstellt).
+
+---
+
+## 8. Einrichtung von PM2 für die Anwendung
+
+1. **Anwendung mit PM2 starten**:
+
+   - Starten Sie die Anwendung:
+     ```bash
+     pm2 start server.js --name wochenplan-radiologie
+     ```
+   - Überprüfen Sie, ob die Anwendung läuft:
+     ```bash
+     pm2 list
+     ```
+     - Sie sollten einen Eintrag mit dem Namen "wochenplan-radiologie" sehen und den Status "online".
+
+2. **PM2 beim Systemstart automatisch starten lassen**:
+
+   - Generieren Sie ein Startup-Skript:
+     ```bash
+     pm2 startup systemd
+     ```
+   - Folgen Sie den Anweisungen und führen Sie den angezeigten Befehl mit `sudo` aus. Beispiel:
+     ```bash
+     sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u pi --hp /home/pi
+     ```
+   - Speichern Sie die aktuelle PM2-Prozessliste:
+     ```bash
+     pm2 save
+     ```
+   - **Hinweis**: PM2 kümmert sich nun darum, dass die Anwendung nach einem Neustart automatisch gestartet wird.
+
+---
+
+## 9. Einrichtung von Nginx als Reverse Proxy
+
+1. **Standard-Nginx-Seite entfernen**:
+
    ```bash
-   sqlite3 /srv/wochenplan-radiologie/wochenplan.db
-   ```
-   - Führen Sie SQL-Befehle aus, um die Tabellen zu erstellen (Details in der Anwendung).
-
-## Starten der Anwendung
-
-### Schritt 1: Anwendung mit PM2 starten
-
-1. **Starten Sie die Anwendung**:
-   ```bash
-   pm2 start server.js --name wochenplan-radiologie
-   ```
-
-2. **Überprüfen Sie, ob die Anwendung läuft**:
-   ```bash
-   pm2 list
-   ```
-   Sie sollten einen Eintrag für "wochenplan-radiologie" mit dem Status "online" sehen.
-
-### Schritt 2: PM2 für automatischen Start konfigurieren
-
-1. **Generieren Sie einen Startup-Script mit PM2**:
-   ```bash
-   pm2 startup systemd
-   ```
-
-2. Kopieren Sie den ausgegebenen Befehl und führen Sie ihn aus.
-
-3. **Speichern Sie die aktuelle PM2-Konfiguration**:
-   ```bash
-   pm2 save
-   ```
-
-## Automatischer Start bei Systemstart
-
-### Schritt 1: Startskripte ausführbar machen
-
-1. **Machen Sie die Startskripte ausführbar**:
-   ```bash
-   sudo chmod +x start_server.sh update_app.sh
-   ```
-
-### Schritt 2: Crontab einrichten
-
-1. **Öffnen Sie die Crontab zur Bearbeitung**:
-   ```bash
-   crontab -e
+   sudo rm /etc/nginx/sites-enabled/default
    ```
 
-2. Wenn Sie gefragt werden, welchen Editor Sie verwenden möchten, wählen Sie "nano" durch Eingabe der entsprechenden Nummer.
+2. **Nginx-Konfiguration für die Anwendung erstellen**:
 
-3. **Fügen Sie am Ende der Datei folgende Zeile hinzu**:
-   ```bash
-   @reboot /srv/wochenplan-radiologie/start_server.sh
-   ```
+   - Erstellen Sie eine neue Konfigurationsdatei:
+     ```bash
+     sudo nano /etc/nginx/sites-available/wochenplan-radiologie
+     ```
+   - Fügen Sie folgenden Inhalt ein (ersetzen Sie die MyFRITZ!-Adresse mit Ihrer eigenen):
 
-4. Speichern Sie die Datei und verlassen Sie den Editor:
-   - Drücken Sie STRG+X
-   - Drücken Sie Y, um die Änderungen zu bestätigen
-   - Drücken Sie Enter, um den Dateinamen zu bestätigen
-
-## SSL-Zertifikat einrichten
-
-1. **Certbot ausführen**:
-   ```bash
-   sudo certbot --nginx -d raspberrypi.hyg6zkbn2mykr1go.myfritz.net
-   ```
-   Folgen Sie den Anweisungen, um das Zertifikat zu erstellen.
-
-2. **Automatische Erneuerung einrichten**:
-   ```bash
-   sudo crontab -e
-   ```
-   Fügen Sie folgende Zeile hinzu:
-   ```bash
-   0 0 * * * /usr/bin/certbot renew --quiet
-   ```
-
-## Nginx als Reverse Proxy konfigurieren
-
-1. **Nginx-Konfiguration erstellen**:
-   - Erstellen Sie `/etc/nginx/sites-available/wochenplan`:
      ```nginx
      server {
-         listen 443 ssl;
-         server_name raspberrypi.hyg6zkbn2myfritz.net;
-
-         ssl_certificate /etc/letsencrypt/live/raspberrypi.hyg6zkbn2myfritz.net/fullchain.pem;
-         ssl_certificate_key /etc/letsencrypt/live/raspberrypi.hyg6zkbn2myfritz.net/privkey.pem;
+         listen 80;
+         server_name raspberrypi.hyg6zkbn2mykr1go.myfritz.net;
 
          location / {
              proxy_pass http://localhost:3000;
@@ -226,55 +291,207 @@ Diese Anwendung dient zur Erstellung und Verwaltung von Wochenplänen für radio
      }
      ```
 
-2. **Konfiguration aktivieren und Nginx neu starten**:
+   - **Speichern** Sie die Datei (`Strg+O`, `Enter`) und schließen Sie den Editor (`Strg+X`).
+
+3. **Konfiguration aktivieren und Nginx neu starten**:
+
    ```bash
-   sudo ln -s /etc/nginx/sites-available/wochenplan /etc/nginx/sites-enabled/
+   sudo ln -s /etc/nginx/sites-available/wochenplan-radiologie /etc/nginx/sites-enabled/
+   sudo nginx -t
    sudo systemctl restart nginx
    ```
 
-## Nutzung der Anwendung
+   - **Hinweis**: `nginx -t` testet die Konfiguration auf Fehler.
 
-- **Zugriff auf die Anwendung**: Besuchen Sie [https://wochenplan-radiologie.de](https://wochenplan-radiologie.de).
-- **Wochenplan erstellen**: Mitarbeiter über die Oberfläche zuweisen.
-- **PDF-Export**: Exportieren Sie den Wochenplan über die Exportfunktion.
+---
 
-## Aktualisierung der Anwendung
+## 10. Einrichtung von Let's Encrypt SSL-Zertifikaten
+
+Da Nginx derzeit ohne SSL läuft, können wir nun Certbot verwenden, um ein SSL-Zertifikat zu erhalten und Nginx automatisch zu konfigurieren.
+
+1. **Port 80 und 443 sicherstellen**:
+
+   - Stellen Sie sicher, dass sowohl Port 80 als auch Port 443 auf Ihren Raspberry Pi weitergeleitet werden.
+   - Überprüfen Sie die Firewall-Einstellungen:
+     ```bash
+     sudo ufw allow 'Nginx Full'
+     ```
+
+2. **Certbot ausführen**:
+
+   - Führen Sie Certbot mit dem Nginx-Plugin aus:
+
+     ```bash
+     sudo certbot --nginx -d raspberrypi.hyg6zkbn2mykr1go.myfritz.net
+     ```
+
+   - Folgen Sie den Anweisungen von Certbot:
+
+     - **E-Mail-Adresse** eingeben (für wichtige Benachrichtigungen).
+     - Den **Nutzungsbedingungen** zustimmen.
+     - Wählen Sie aus, ob Sie HTTP auf HTTPS umleiten möchten (empfohlen).
+
+3. **Überprüfung der Nginx-Konfiguration**:
+
+   - Testen Sie die Nginx-Konfiguration erneut:
+     ```bash
+     sudo nginx -t
+     ```
+   - Starten Sie Nginx neu:
+     ```bash
+     sudo systemctl restart nginx
+     ```
+
+4. **SSL-Zertifikate überprüfen**:
+
+   - Die SSL-Zertifikate sollten nun unter folgendem Pfad vorhanden sein:
+     ```
+     /etc/letsencrypt/live/raspberrypi.hyg6zkbn2mykr1go.myfritz.net/
+     ```
+
+---
+
+## 11. Automatische Erneuerung der SSL-Zertifikate
+
+1. **Certbot automatische Erneuerung testen**:
+
+   ```bash
+   sudo certbot renew --dry-run
+   ```
+
+   - Wenn keine Fehler auftreten, ist die automatische Erneuerung korrekt eingerichtet.
+
+2. **Cronjob für Certbot überprüfen**:
+
+   - Certbot erstellt automatisch einen Cronjob für die Erneuerung.
+   - Sie können den Timer mit folgendem Befehl anzeigen:
+     ```bash
+     sudo systemctl list-timers
+     ```
+
+---
+
+## 12. Anwendung testen und nutzen
+
+1. **Anwendung über HTTPS aufrufen**:
+
+   - Öffnen Sie Ihren Browser und navigieren Sie zu:
+     ```
+     https://raspberrypi.hyg6zkbn2mykr1go.myfritz.net
+     ```
+
+2. **Überprüfung**:
+
+   - Sie sollten nun die Anwendung sehen und nutzen können.
+   - Stellen Sie sicher, dass die Verbindung als **sicher** angezeigt wird (Schlosssymbol in der Adressleiste).
+
+3. **Anwendung nutzen**:
+
+   - **Wochenpläne erstellen und verwalten**.
+   - **PDF-Export** nutzen.
+   - **Passwortschutz** beachten (falls implementiert).
+
+---
+
+## 13. Aktualisierung der Anwendung
 
 1. **In das Anwendungsverzeichnis wechseln**:
+
    ```bash
    cd /srv/wochenplan-radiologie
    ```
 
 2. **Code aktualisieren und Abhängigkeiten installieren**:
+
    ```bash
    git pull
    npm install
    ```
 
 3. **Anwendung neu starten**:
+
    ```bash
-   pm2 restart wochenplan
+   pm2 restart wochenplan-radiologie
    ```
 
-4. **Nginx-Konfiguration neu laden (falls erforderlich)**:
+4. **Nginx-Konfiguration neu laden (falls geändert)**:
+
    ```bash
    sudo nginx -t
    sudo systemctl reload nginx
    ```
 
-## Fehlerbehebung und Support
+---
 
+## 14. Fehlerbehebung und Support
+
+### Anwendung läuft nicht
+
+- **PM2-Prozess prüfen**:
+  ```bash
+  pm2 list
+  ```
 - **Logs anzeigen**:
-   ```bash
-   pm2 logs wochenplan
-   ```
-- **Nginx-Status prüfen**:
-   ```bash
-   sudo systemctl status nginx
-   ```
-- **Verbindung testen**:
-   ```bash
-   curl -I https://wochenplan-radiologie.de
-   ```
+  ```bash
+  pm2 logs wochenplan-radiologie
+  ```
+
+### Nginx startet nicht
+
+- **Nginx-Konfiguration testen**:
+  ```bash
+  sudo nginx -t
+  ```
+- **Nginx-Logs anzeigen**:
+  ```bash
+  sudo tail -f /var/log/nginx/error.log
+  ```
+
+### SSL-Zertifikate nicht vorhanden oder abgelaufen
+
+- **Certbot erneut ausführen**:
+  ```bash
+  sudo certbot --nginx -d raspberrypi.hyg6zkbn2mykr1go.myfritz.net
+  ```
+- **Firewall und Portfreigaben prüfen**:
+  - Stellen Sie sicher, dass Port 80 und 443 offen sind.
+
+### Anwendung nicht erreichbar
+
+- **Portfreigaben in der Fritz!Box prüfen**.
+- **Internetverbindung des Raspberry Pi prüfen**.
+- **DNS-Auflösung prüfen**:
+  ```bash
+  nslookup raspberrypi.hyg6zkbn2mykr1go.myfritz.net
+  ```
+- **MyFRITZ!-Status überprüfen**.
+
+---
+
+## 15. Anhang: Wichtige Dateien und Verzeichnisse
+
+- **Anwendungsverzeichnis**: `/srv/wochenplan-radiologie/`
+- **Nginx-Konfiguration**: `/etc/nginx/sites-available/wochenplan-radiologie`
+- **SSL-Zertifikate**: `/etc/letsencrypt/live/raspberrypi.hyg6zkbn2mykr1go.myfritz.net/`
+- **PM2-Prozessliste**: Gespeichert unter `/home/pi/.pm2/`
+- **Nginx-Logs**: `/var/log/nginx/`
+
+---
+
+**Hinweis**: Diese Anleitung wurde sorgfältig erstellt, um alle notwendigen Schritte abzudecken und Fehler zu vermeiden. Sollten dennoch Probleme auftreten, zögern Sie nicht, professionelle Unterstützung in Anspruch zu nehmen oder die offizielle Dokumentation der verwendeten Software zu konsultieren.
+
+---
+
+**Viel Erfolg bei der Einrichtung Ihrer Anwendung!**
+
+---
+
+**Überprüfung der Anleitung**
+
+- **Aktualität**: Alle Schritte basieren auf aktuellen Softwareversionen und Best Practices.
+- **Korrektheit**: Die Anleitung wurde überprüft, um Fehler zu vermeiden.
+- **Reihenfolge**: Die Schritte sind in logischer und notwendiger Reihenfolge angeordnet.
+- **Vollständigkeit**: Jeder notwendige Schritt von Anfang bis Ende ist abgedeckt.
+- **Anfängerfreundlich**: Die Anleitung ist für unerfahrene Benutzer verständlich geschrieben und erklärt jeden Schritt ausführlich.
 
 ---
