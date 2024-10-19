@@ -329,12 +329,16 @@ async function initializePasswordProtection() {
     const overlay = createPasswordOverlay();
     document.body.appendChild(overlay);
 
-    showPasswordOverlay('viewer');
+    if (isEditorMode()) {
+        showPasswordOverlay('editor');
+    } else {
+        showPasswordOverlay('viewer');
 
-    // Prüfe, ob das Passwort bereits akzeptiert wurde und noch gültig ist
-    const storedExpiryTime = localStorage.getItem('passwordAccepted');
-    if (storedExpiryTime && new Date().getTime() < storedExpiryTime) {
-        overlay.style.display = 'none';
+        // Prüfe, ob das Viewer-Passwort bereits akzeptiert wurde und noch gültig ist
+        const storedExpiryTime = localStorage.getItem('viewerPasswordAccepted');
+        if (storedExpiryTime && new Date().getTime() < parseInt(storedExpiryTime)) {
+            overlay.style.display = 'none';
+        }
     }
 }
 
@@ -389,9 +393,9 @@ function checkPassword(overlay, mode) {
     const correctPassword = mode === 'editor' ? EDITOR_PASSWORD : VIEWER_PASSWORD;
 
     if (passwordInput.value === correctPassword) {
-        if (rememberCheckbox.checked) {
+        if (rememberCheckbox.checked && mode === 'viewer') {
             const expiryTime = new Date().getTime() + 24 * 60 * 60 * 1000; // 24 Stunden ab jetzt
-            localStorage.setItem('passwordAccepted', expiryTime);
+            localStorage.setItem('viewerPasswordAccepted', expiryTime.toString());
         }
         overlay.style.opacity = '0';
         setTimeout(() => {
