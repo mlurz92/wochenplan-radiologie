@@ -1,11 +1,10 @@
+<!-- editor.html -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Wochenplan Radiologie - Editor</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Schriftarten und Stylesheets -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <title>Wochenplan Radiologie - Editor</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -17,7 +16,6 @@
                     <button id="prev-week">&lt;</button>
                     <div id="week-picker-container">
                         <span id="calendar-icon">📅</span>
-                        <input type="text" id="week-picker" class="hidden">
                         <span id="current-week"></span>
                     </div>
                     <button id="next-week">&gt;</button>
@@ -33,7 +31,6 @@
                 <button class="day-button" data-day="7">So</button>
             </div>
         </nav>
-
         <div id="main-container">
             <div id="staff-pool">
                 <div id="fa-pool">
@@ -45,14 +42,21 @@
                     <ul class="staff-list-items"></ul>
                 </div>
             </div>
-
+            <div id="notes-area">
+                <div id="weekly-notes">
+                    <h3>Wöchentliche Notizen</h3>
+                    <textarea id="notes-input"></textarea>
+                </div>
+                <div id="daily-notes">
+                    <h3>Tagesnotizen</h3>
+                    <textarea id="daily-notes-input"></textarea>
+                </div>
+            </div>
             <div id="workplan-area" role="main">
                 <div id="workplace-cards"></div>
                 <div id="additional-status-cards"></div>
-                <textarea id="notes-input" rows="4" placeholder="Notizen für diese Woche"></textarea>
             </div>
         </div>
-
         <div id="button-area">
             <button id="week-overview">Wochenübersicht</button>
             <button id="pdf-export">Export als PDF</button>
@@ -62,13 +66,6 @@
             <button id="back-to-viewer">Zurück zu Viewer</button>
         </div>
     </div>
-
-    <!-- Skripte -->
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.20/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
-    <script src="https://unpkg.com/feather-icons"></script>
     <script src="app.js"></script>
 </body>
 </html>
