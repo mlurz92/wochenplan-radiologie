@@ -14,7 +14,7 @@ app.use(bodyParser.json());
 // SQLite-Datenbankverbindung
 const db = new sqlite3.Database('./wochenplan.db', (err) => {
   if (err) {
-    console.error('Fehler beim Öffnen der Datenbank:', err.message);
+    console.error('Fehler beim Ã–ffnen der Datenbank:', err.message);
   } else {
     console.log('Verbindung zur SQLite-Datenbank hergestellt.');
     initializeDatabase();
@@ -67,11 +67,11 @@ app.get('/api/load-plan', (req, res) => {
   });
 });
 
-// Alle Wochenpläne abrufen
+// Alle WochenplÃ¤ne abrufen
 app.get('/api/get-all-plans', (req, res) => {
   db.all(`SELECT year, week, plan FROM wochenplaene`, [], (err, rows) => {
     if (err) {
-      res.status(500).json({ error: 'Fehler beim Abrufen der Wochenpläne' });
+      res.status(500).json({ error: 'Fehler beim Abrufen der WochenplÃ¤ne' });
       return console.error(err.message);
     }
     const plans = rows.map(row => ({
@@ -86,12 +86,12 @@ app.get('/api/get-all-plans', (req, res) => {
 // Statische Dateien servieren
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Catch-all Route für das Frontend-Routing
+// Catch-all Route fÃ¼r das Frontend-Routing
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // HTTP-Server starten
 app.listen(port, '0.0.0.0', () => {
-  console.log(`Server läuft auf http://0.0.0.0:${port}`);
+  console.log(`Server lÃ¤uft auf http://0.0.0.0:${port}`);
 });
