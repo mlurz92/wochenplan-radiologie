@@ -4,7 +4,14 @@
 let currentWeek = {
     year: new Date().getFullYear(),
     week: getWeekNumber(new Date()),
-    1: {}, 2: {}, 3: {}, 4: {}, 5: {}, 6: {}, 7: {}
+    notes: '', // Wochennotizen
+    1: { notes: '' }, // Montag
+    2: { notes: '' }, // Dienstag
+    3: { notes: '' }, // Mittwoch
+    4: { notes: '' }, // Donnerstag
+    5: { notes: '' }, // Freitag
+    6: { notes: '' }, // Samstag
+    7: { notes: '' }  // Sonntag
 };
 let currentDay = new Date().getDay();
 if (currentDay === 0) currentDay = 7; // Sonntag als 7 behandeln
@@ -15,7 +22,6 @@ const staffMembers = {
     aa: ['Becker', 'Fröhlich', 'Martin', 'Torki']
 };
 let currentNotes = '';
-let dailyNotes = { 1: '', 2: '', 3: '', 4: '', 5: '', 6: '', 7: '' };
 
 // Initialisierung der Anwendung
 document.addEventListener('DOMContentLoaded', async () => {
@@ -167,6 +173,7 @@ function initializeDragAndDrop() {
             },
             fallbackOnBody: true,
             swapThreshold: 0.65,
+            fallbackTolerance: 3, // Fügt Touch-Unterstützung hinzu
         });
     });
 
@@ -179,7 +186,10 @@ function initializeDragAndDrop() {
                 put: false
             },
             sort: false,
-            animation: 150
+            animation: 150,
+            fallbackOnBody: true,
+            swapThreshold: 0.65,
+            fallbackTolerance: 3, // Fügt Touch-Unterstützung hinzu
         });
     });
 }
@@ -307,7 +317,6 @@ async function loadPlan() {
                     ...planData
                 };
                 currentNotes = planData.notes || '';
-                dailyNotes = planData.dailyNotes || { 1: '', 2: '', 3: '', 4: '', 5: '', 6: '', 7: '' };
                 updateUI();
                 loadNotes();
             } else if (response.status === 404) {
@@ -331,16 +340,12 @@ async function initializePasswordProtection() {
     const overlay = createPasswordOverlay();
     document.body.appendChild(overlay);
 
-    if (isEditorMode()) {
-        showPasswordOverlay('editor');
-    } else {
-        showPasswordOverlay('viewer');
+    showPasswordOverlay('viewer');
 
-        // Prüfe, ob das Viewer-Passwort bereits akzeptiert wurde und noch gültig ist
-        const storedExpiryTime = localStorage.getItem('viewerPasswordAccepted');
-        if (storedExpiryTime && new Date().getTime() < parseInt(storedExpiryTime)) {
-            overlay.style.display = 'none';
-        }
+    // Prüfe, ob das Passwort bereits akzeptiert wurde und noch gültig ist
+    const storedExpiryTime = localStorage.getItem('passwordAccepted');
+    if (storedExpiryTime && new Date().getTime() < storedExpiryTime) {
+        overlay.style.display = 'none';
     }
 }
 
@@ -395,9 +400,9 @@ function checkPassword(overlay, mode) {
     const correctPassword = mode === 'editor' ? EDITOR_PASSWORD : VIEWER_PASSWORD;
 
     if (passwordInput.value === correctPassword) {
-        if (rememberCheckbox.checked && mode === 'viewer') {
+        if (rememberCheckbox.checked) {
             const expiryTime = new Date().getTime() + 24 * 60 * 60 * 1000; // 24 Stunden ab jetzt
-            localStorage.setItem('viewerPasswordAccepted', expiryTime.toString());
+            localStorage.setItem('passwordAccepted', expiryTime);
         }
         overlay.style.opacity = '0';
         setTimeout(() => {
@@ -426,7 +431,7 @@ function initializeEmptyWeek() {
 
 // Wochenplan speichern
 async function savePlan() {
-    const planData = JSON.stringify({ ...currentWeek, notes: currentNotes, dailyNotes: dailyNotes });
+    const planData = JSON.stringify({ ...currentWeek, notes: currentNotes });
     try {
         const response = await fetch('/api/save-plan', {
             method: 'POST',
@@ -448,36 +453,38 @@ async function savePlan() {
 
 // Funktion zum Speichern der Notizen
 function saveNotes() {
-    const weeklyNotesInput = document.getElementById('notes-input');
+    const notesInput = document.getElementById('notes-input');
     const dailyNotesInput = document.getElementById('daily-notes-input');
-    if (weeklyNotesInput) {
-        currentNotes = weeklyNotesInput.value;
+    if (notesInput) {
+        currentWeek.notes = notesInput.value;
     }
     if (dailyNotesInput) {
-        dailyNotes[currentDay] = dailyNotesInput.value;
+        currentWeek[currentDay].notes = dailyNotesInput.value;
     }
     savePlan();
 }
 
 // Funktion zum Laden der Notizen
 function loadNotes() {
-    const weeklyNotesInput = document.getElementById('notes-input');
-    const weeklyNotesContent = document.getElementById('notes-content');
+    const notesInput = document.getElementById('notes-input');
     const dailyNotesInput = document.getElementById('daily-notes-input');
+    const notesContent = document.getElementById('notes-content');
     const dailyNotesContent = document.getElementById('daily-notes-content');
     
-    if (weeklyNotesInput) {
-        weeklyNotesInput.value = currentNotes;
-    }
-    if (weeklyNotesContent) {
-        weeklyNotesContent.textContent = currentNotes;
+    if (notesInput) {
+        notesInput.value = currentWeek.notes || '';
     }
     
     if (dailyNotesInput) {
-        dailyNotesInput.value = dailyNotes[currentDay];
+        dailyNotesInput.value = currentWeek[currentDay].notes || '';
     }
+    
+    if (notesContent) {
+        notesContent.textContent = currentWeek.notes || '';
+    }
+    
     if (dailyNotesContent) {
-        dailyNotesContent.textContent = dailyNotes[currentDay];
+        dailyNotesContent.textContent = currentWeek[currentDay].notes || '';
     }
 }
 
@@ -546,7 +553,7 @@ function updateUI() {
     updateDayButtons();
     checkWeekendOrHoliday();
     updateCardBackgrounds();
-    loadNotes();
+    loadNotes(); // Notizen laden
 }
 
 // Arbeitsplatzkarten aktualisieren
@@ -715,10 +722,10 @@ function createStaffElement(staff) {
 
 // Event-Listener für Notizen
 function initializeNotesEventListeners() {
-    const weeklyNotesInput = document.getElementById('notes-input');
+    const notesInput = document.getElementById('notes-input');
     const dailyNotesInput = document.getElementById('daily-notes-input');
-    if (weeklyNotesInput) {
-        weeklyNotesInput.addEventListener('input', saveNotes);
+    if (notesInput) {
+        notesInput.addEventListener('input', saveNotes);
     }
     if (dailyNotesInput) {
         dailyNotesInput.addEventListener('input', saveNotes);
@@ -794,7 +801,6 @@ function changeDay(direction) {
     currentDay = newDay;
     updateUI();
     updateDayButtons();
-    loadNotes(); // Notizen für den neuen Tag laden
 }
 
 // Tagesbuttons aktualisieren
