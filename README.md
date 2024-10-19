@@ -249,9 +249,15 @@ Für eine sichere Verbindung ist es wichtig, SSL einzurichten. Wir verwenden daf
 
 2. Führen Sie Certbot aus und folgen Sie den Anweisungen:
    ```
-   sudo certbot --nginx -d [Ihre-MyFRITZ-Adresse]
+   sudo certbot certonly --nginx -d raspberrypi.hyg6zkbn2mykr1go.myfritz.net
    ```
-   Ersetzen Sie [Ihre-MyFRITZ-Adresse] durch Ihre tatsächliche MyFRITZ!-Adresse (z.B. xxxxx.myfritz.net).
+   Stellen Sie sicher, dass das Zertifikat automatisch erneuert wird:
+   ```
+   sudo crontab -e
+   # Add the following line
+   0 0 * * * /usr/bin/certbot renew --quiet
+
+   ```
 
 3. Wählen Sie die Option, um alle HTTP-Anfragen auf HTTPS umzuleiten, wenn Sie danach gefragt werden.
 
@@ -261,7 +267,7 @@ Sie können nun von überall auf Ihre Anwendung zugreifen:
 
 1. Öffnen Sie einen Webbrowser und geben Sie Ihre MyFRITZ!-Adresse ein:
    ```
-   https://[Ihre-MyFRITZ-Adresse]
+   https://raspberrypi.hyg6zkbn2mykr1go.myfritz.net
    ```
 
 2. Sie sollten nun die Benutzeroberfläche der Wochenplan-Radiologie-Anwendung sehen.
@@ -272,7 +278,7 @@ Sie können nun von überall auf Ihre Anwendung zugreifen:
 
 - Um die Anwendung zu aktualisieren, führen Sie folgende Befehle aus:
   ```
-  cd /home/pi/wochenplan-radiologie
+  cd /srv/wochenplan-radiologie
   git pull
   npm install
   pm2 restart wochenplan-radiologie
