@@ -1,5 +1,5 @@
 #!/bin/bash
-cd /home/pi/wochenplan-radiologie
+cd /srv/wochenplan-radiologie
 git pull
 npm install
 chmod +x start_server.sh update_app.sh
