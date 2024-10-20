@@ -97,8 +97,18 @@ button:hover {
     color: var(--background-color);
 }
 
-button.unsaved {
-    background-color: #ffffff7e;
+/* Styling für den Speichern-Knopf im hervorgehobenen Zustand */
+button#save-plan.unsaved {
+    background-color: #ffcc00; /* Gelb hervorgehoben */
+    color: #000;
+    border: 2px solid #ffaa00;
+}
+
+/* Styling für den deaktivierten Speichern-Knopf */
+button#save-plan:disabled {
+    background-color: #cccccc; /* Grau */
+    color: #666666;
+    cursor: not-allowed;
 }
 
 #password-overlay {
@@ -162,6 +172,7 @@ button.unsaved {
 #main-container {
     display: flex;
     flex: 1;
+    position: relative; /* Hinzugefügt für das feste Notizfeld */
 }
 
 #staff-pool {
@@ -217,6 +228,7 @@ button.unsaved {
     display: flex;
     flex-direction: column;
     gap: 50px;
+    margin-left: 200px; /* Platz für die feste Notizanzeige */
 }
 
 #workplace-cards {
@@ -266,48 +278,43 @@ button.unsaved {
     margin: 10px 0 5px;
 }
 
-#notes-display, 
-#daily-notes-display {
-  background-color: var(--card-color);
-  border-radius: 8px;
-  padding: 15px;
-  margin: 10px;
-  width: 180px;
-  position: fixed; 
-  top: 100px; 
-  left: 10px; 
-  overflow-y: auto;
+#notes-area, #notes-display {
+    background-color: var(--card-color);
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 20px;
 }
 
-#daily-notes-display {
-  top: 200px; 
+#notes-input, #daily-notes-input {
+    width: 100%; /* Anpassung für die volle Breite */
+    margin: 10px 0;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    border: 1px solid var(--text-color);
+    border-radius: 4px;
+    padding: 10px;
+    resize: vertical;
 }
 
-#workplan-area,
-#button-area {
-  margin-left: 200px; 
+#notes-content, #daily-notes-content {
+    background-color: var(--card-color);
+    border: 1px solid var(--text-color); /* Dünne Umrandung */
+    border-radius: 8px;
+    padding: 15px;
+    width: 300px;
+    position: fixed;
+    top: 100px;
+    right: 10px;
+    height: auto;
+    max-height: 80vh;
+    overflow-y: auto;
 }
 
-.viewer-mode #notes-content, 
-.viewer-mode #daily-notes-content {
-  background-color: var(--card-color);
-  border-radius: 8px;
-  padding: 15px;
-  margin: 10px;
-  width: 180px;
-  position: fixed;
-  top: 100px;
-  left: 10px;
-  overflow-y: auto;
-}
-
-.viewer-mode #daily-notes-content {
-  top: 200px;
-}
-
-.viewer-mode #workplan-area,
-.viewer-mode #button-area {
-  margin-left: 200px;
+#notes-content h3, #daily-notes-content h3 {
+    margin-top: 0;
+    font-size: 16px;
+    border-bottom: 1px solid var(--text-color);
+    padding-bottom: 5px;
 }
 
 #button-area {
@@ -352,7 +359,39 @@ button.unsaved {
     background-color: rgba(151, 255, 109, 0.2);
 }
 
-/* Responsive Design */
+/* Neue CSS-Regeln für die Notizanzeige */
+#notes-content, #daily-notes-content {
+    background-color: var(--card-color);
+    border: 1px solid var(--text-color); /* Dünne Umrandung */
+    border-radius: 8px;
+    padding: 15px;
+    width: 300px;
+    position: fixed;
+    top: 100px;
+    right: 10px;
+    height: auto;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+#notes-content h3, #daily-notes-content h3 {
+    margin-top: 0;
+    font-size: 16px;
+    border-bottom: 1px solid var(--text-color);
+    padding-bottom: 5px;
+}
+
+/* Anpassung des Button-Bereichs für bessere Ausrichtung */
+#button-area {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 20px;
+}
+
+/* Responsive Design bleibt unverändert */
 @media (max-width: 1300px) {
     #additional-status-cards {
         grid-template-columns: repeat(3, auto);
@@ -416,6 +455,15 @@ button.unsaved {
 
     .staff-list-items li {
         font-size: 14px;
+    }
+
+    /* Anpassung der Notizanzeige */
+    #notes-content, #daily-notes-content {
+        width: calc(100% - 20px);
+        position: relative;
+        top: auto;
+        left: auto;
+        margin: 10px auto;
     }
 }
 
