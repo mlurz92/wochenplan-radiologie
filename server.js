@@ -1,3 +1,5 @@
+// server.js
+
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -57,6 +59,10 @@ app.post('/api/save-plan', (req, res) => {
 app.get('/api/load-plan', (req, res) => {
     const { year, week } = req.query;
 
+    if (!year || !week) {
+        return res.status(400).json({ error: 'Year und week Parameter sind erforderlich' });
+    }
+
     const sql = `SELECT data FROM plans WHERE year = ? AND week = ?`;
 
     db.get(sql, [year, week], (err, row) => {
@@ -90,7 +96,7 @@ app.get('/api/get-all-plans', (req, res) => {
     });
 });
 
-// HTTP-Server starten
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Server läuft auf http://0.0.0.0:${port}`);
+// Starten des Servers
+app.listen(PORT, () => {
+    console.log(`Server läuft auf Port ${PORT}`);
 });
