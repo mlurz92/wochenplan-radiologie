@@ -1,5 +1,3 @@
-// server.js
-
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -68,6 +66,7 @@ app.get('/api/load-plan', (req, res) => {
     }
   });
 });
+
 
 // Alle Wochenpläne abrufen
 app.get('/api/get-all-plans', (req, res) => {
