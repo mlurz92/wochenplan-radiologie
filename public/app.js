@@ -400,22 +400,35 @@ function checkPassword(overlay, mode) {
     const correctPassword = mode === 'editor' ? EDITOR_PASSWORD : VIEWER_PASSWORD;
 
     if (passwordInput.value === correctPassword) {
+        // Speichere den Modus und den Zeitstempel im localStorage, 
+        // wenn "Passwort merken" ausgewählt ist
         if (rememberCheckbox.checked) {
             const expiryTime = new Date().getTime() + 24 * 60 * 60 * 1000; // 24 Stunden ab jetzt
-            localStorage.setItem('passwordAccepted', expiryTime);
+
+            if (mode === 'editor') {
+                // Setze das localStorage-Element für den Editor-Modus
+                localStorage.setItem('editorPasswordAccepted', expiryTime);
+            } else {
+                // Setze das localStorage-Element für den Viewer-Modus
+                localStorage.setItem('viewerPasswordAccepted', expiryTime);
+            }
         }
-        overlay.style.opacity = '0';
+
+        // Blende das Overlay aus
+        overlay.style.opacity = '0'; 
         setTimeout(() => {
             overlay.style.display = 'none';
-        }, 500);
+        }, 500); // Warte 500ms, damit die Animation abgespielt wird
 
+        // Leite den Benutzer zum Editor weiter, wenn der Modus 'editor' ist
         if (mode === 'editor') {
-            window.location.href = 'editor.html';
+            window.location.href = 'editor.html'; 
         }
     } else {
+        // Zeige eine Fehlermeldung an, wenn das Passwort falsch ist
         alert('Falsches Passwort. Bitte versuchen Sie es erneut.');
-        passwordInput.value = '';
-        passwordInput.focus();
+        passwordInput.value = ''; // Leere das Passwortfeld
+        passwordInput.focus(); // Setze den Fokus zurück auf das Passwortfeld
     }
 }
 
@@ -551,9 +564,38 @@ function updateUI() {
         checkForUnsavedChanges();
     }
     updateDayButtons();
+    updateSaveButton();
+    updateNotesDisplay();
     checkWeekendOrHoliday();
     updateCardBackgrounds();
     loadNotes(); // Notizen laden
+}
+
+function updateNotesDisplay() {
+    const notesDisplay = document.getElementById('notes-display');
+    const dailyNotesDisplay = document.getElementById('daily-notes-display');
+
+    if (notesDisplay) {
+        notesDisplay.textContent = currentWeek.notes || '';
+    }
+
+    if (dailyNotesDisplay) {
+        dailyNotesDisplay.textContent = currentWeek[currentDay].notes || '';
+    }
+}
+
+function updateSaveButton() {
+    const saveButton = document.getElementById('save-plan');
+    const key = `plan_${currentWeek.year}_KW${currentWeek.week}`;
+    const savedPlan = localStorage.getItem(key);
+
+    if (savedPlan && JSON.stringify(currentWeek) !== savedPlan) {
+        saveButton.textContent = 'Speichern';
+        saveButton.disabled = false; // Knopf aktivieren
+    } else {
+        saveButton.textContent = 'Gespeichert';
+        saveButton.disabled = true; // Knopf deaktivieren
+    }
 }
 
 // Arbeitsplatzkarten aktualisieren
