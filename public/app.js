@@ -28,16 +28,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     checkBrowserCompatibility();
     initializeWeekPicker(); // Diese Funktion ist jetzt leer
     if (isEditorMode()) {
-        initializePasswordProtection(); // Passwortschutz für Editor hinzufügen
         initializeWorkplaceCards();
         initializeStatusCards();
         initializeDragAndDrop();
     } else {
-        initializeReadOnlyView();
-        initializePasswordProtection(); // Passwortschutz für Viewer hinzufügen
         initializeWorkplaceCards();
         initializeStatusCards();
         initializeReadOnlyView();
+        await initializePasswordProtection();
+    }
+    if (!isEditorMode()) {
+        await initializePasswordProtection();
     }
     initializeEventListeners();
     initializeNotesEventListeners();
@@ -337,13 +338,13 @@ async function loadPlan() {
 const VIEWER_PASSWORD = 'Radiologie1!';
 const EDITOR_PASSWORD = 'Kandinsky1!';
 
-// Funktion für die Passwortschutz
+// Funktion für den Passwortschutz
 async function initializePasswordProtection() {
     const overlay = createPasswordOverlay();
     document.body.appendChild(overlay);
 
     const mode = isEditorMode() ? 'editor' : 'viewer';
-    showPasswordOverlay(mode);
+    showPasswordOverlay(overlay, mode);
 
     // Prüfe, ob das Passwort bereits akzeptiert wurde und noch gültig ist
     const storedExpiryTime = localStorage.getItem(`passwordAccepted_${mode}`);
@@ -352,6 +353,7 @@ async function initializePasswordProtection() {
     }
 }
 
+// Funktion zum Erstellen des Passwort-Overlays
 function createPasswordOverlay() {
     const overlay = document.createElement('div');
     overlay.id = 'password-overlay';
@@ -369,10 +371,9 @@ function createPasswordOverlay() {
     return overlay;
 }
 
-function showPasswordOverlay(mode) {
-    const overlay = document.getElementById('password-overlay') || createPasswordOverlay();
+// Funktion zum Anzeigen des Passwort-Overlays
+function showPasswordOverlay(overlay, mode) {
     overlay.style.display = 'flex';
-    document.body.appendChild(overlay);
 
     const title = overlay.querySelector('h2');
     title.textContent = mode === 'editor' ? 'Editor-Modus Passwort' : 'Passwortgeschützter Bereich';
@@ -396,6 +397,7 @@ function showPasswordOverlay(mode) {
     };
 }
 
+// Funktion zur Überprüfung des eingegebenen Passworts
 function checkPassword(overlay, mode) {
     const passwordInput = document.getElementById('password-input');
     const rememberCheckbox = document.getElementById('remember-password');
@@ -413,7 +415,7 @@ function checkPassword(overlay, mode) {
         }, 500);
 
         if (mode === 'editor') {
-            // Kein Redirect nötig, da bereits auf editor.html
+            window.location.href = 'editor.html';
         }
     } else {
         alert('Falsches Passwort. Bitte versuchen Sie es erneut.');
@@ -433,32 +435,12 @@ function initializeEmptyWeek() {
 }
 
 // Wochenplan speichern
-app.post('/api/save-plan', (req, res) => {
-  const { year, week, notes, ...planData } = req.body;
-  const planJson = JSON.stringify(planData);
-
-  db.run(`INSERT OR REPLACE INTO wochenplaene (year, week, plan, notes) VALUES (?, ?, ?, ?)`,
-    [year, week, planJson, notes],
-    function(err) {
-      if (err) {
-        res.status(500).json({ error: 'Fehler beim Speichern des Plans' });
-        return console.error(err.message);
-      }
-      res.json({ message: 'Plan erfolgreich gespeichert', id: this.lastID });
-    }
-  );
-});
-
-// Wochenplan speichern
-// Wochenplan speichern
 async function savePlan() {
-    const planData = { 
-        ...currentWeek, 
-        notes: currentWeek.notes, // Sicherstellen, dass Notizen enthalten sind
-        [currentDay]: {
-            ...currentWeek[currentDay],
-            notes: currentWeek[currentDay].notes || ''
-        }
+    const planData = {
+        year: currentWeek.year,
+        week: currentWeek.week,
+        notes: currentWeek.notes,
+        ...currentWeek
     };
     try {
         const response = await fetch('/api/save-plan', {
@@ -471,8 +453,8 @@ async function savePlan() {
         if (!response.ok) {
             throw new Error('Fehler beim Speichern des Wochenplans');
         } else {
-            const data = await response.json();
-            console.log(data.message);
+            const result = await response.json();
+            console.log(result.message);
             localStorage.removeItem(`plan_${currentWeek.year}_KW${currentWeek.week}`);
             checkForUnsavedChanges();
         }
@@ -500,25 +482,25 @@ function loadNotes() {
     const dailyNotesInput = document.getElementById('daily-notes-input');
     const notesContent = document.getElementById('notes-content');
     const dailyNotesContent = document.getElementById('daily-notes-content');
-    
+
     if (notesInput) {
         notesInput.value = currentWeek.notes || '';
     }
-    
+
     if (dailyNotesInput) {
         dailyNotesInput.value = currentWeek[currentDay].notes || '';
     }
-    
+
     if (notesContent) {
-        notesContent.textContent = currentWeek.notes || '';
+        notesContent.textContent = currentWeek.notes || 'Keine Notizen vorhanden.';
     }
-    
+
     if (dailyNotesContent) {
-        dailyNotesContent.textContent = currentWeek[currentDay].notes || '';
+        dailyNotesContent.textContent = currentWeek[currentDay].notes || 'Keine Notizen vorhanden.';
     }
 }
 
-// Funktion zum Speichern des Plans im Local Storage
+// Plan im Local Storage speichern
 function savePlanToLocalStorage() {
     const key = `plan_${currentWeek.year}_KW${currentWeek.week}`;
     const planData = JSON.stringify(currentWeek);
@@ -556,13 +538,42 @@ async function fetchAndStoreAllPlans() {
     }
 }
 
-// Funktion zum Überprüfen von Änderungen und Aktualisieren des Speichern-Knopfs
-function checkForUnsavedChanges() {
-    const key = `plan_${currentWeek.year}_KW${currentWeek.week}`;
-    const savedPlan = localStorage.getItem(key);
-    const saveButton = document.getElementById('save-plan');
+// Funktion zum Vergleich von Local Storage und Datenbank
+async function isPlanSaved() {
+    try {
+        const response = await fetch(`/api/load-plan?year=${currentWeek.year}&week=${currentWeek.week}`);
+        if (response.ok) {
+            const dbPlan = await response.json();
+            const localPlan = JSON.parse(localStorage.getItem(`plan_${currentWeek.year}_KW${currentWeek.week}`));
 
-    if (savedPlan) {
+            // Vergleich der relevanten Teile des Plans
+            if (!localPlan && !dbPlan) return true;
+            if ((!localPlan && dbPlan) || (localPlan && !dbPlan)) return false;
+
+            // Stringify und vergleichen
+            const dbPlanStr = JSON.stringify({ year: dbPlan.year, week: dbPlan.week, notes: dbPlan.notes, ...dbPlan });
+            const localPlanStr = JSON.stringify({ year: localPlan.year, week: localPlan.week, notes: localPlan.notes, ...localPlan });
+
+            return dbPlanStr === localPlanStr;
+        } else if (response.status === 404) {
+            // Kein Plan in der Datenbank, prüfen ob Local Storage leer ist
+            const localPlan = localStorage.getItem(`plan_${currentWeek.year}_KW${currentWeek.week}`);
+            return !localPlan;
+        } else {
+            throw new Error('Fehler beim Abrufen des Plans aus der Datenbank');
+        }
+    } catch (error) {
+        console.error('Fehler beim Vergleich der Pläne:', error);
+        return false;
+    }
+}
+
+// Funktion zur Aktualisierung des Speichern-Knopfes
+async function updateSaveButton() {
+    const saveButton = document.getElementById('save-plan');
+    const isSaved = await isPlanSaved();
+
+    if (!isSaved) {
         saveButton.textContent = 'Speichern';
         saveButton.classList.add('unsaved');
         saveButton.disabled = false;
@@ -573,6 +584,16 @@ function checkForUnsavedChanges() {
     }
 }
 
+function checkForUnsavedChanges() {
+    updateSaveButton();
+}
+
+// Funktion zur Aktualisierung des Speichern-Knopfes nach dem Speichern
+async function handleSavePlan() {
+    await savePlan();
+    await updateSaveButton();
+}
+
 // UI aktualisieren
 function updateUI() {
     updateWorkplaceCards();
@@ -580,12 +601,15 @@ function updateUI() {
     if (isEditorMode()) {
         updateStaffPool();
         savePlanToLocalStorage();
-        checkForUnsavedChanges(); // Überprüfung nach UI-Aktualisierung
+        checkForUnsavedChanges();
     }
     updateDayButtons();
     checkWeekendOrHoliday();
     updateCardBackgrounds();
     loadNotes(); // Notizen laden
+    if (isEditorMode()) {
+        updateSaveButton();
+    }
 }
 
 // Arbeitsplatzkarten aktualisieren
@@ -850,7 +874,7 @@ function updateDayButtons() {
     });
 }
 
-// Event Listener initialisieren
+// Event Listener für den Speichern-Knopf anpassen
 function initializeEventListeners() {
     document.getElementById('prev-week').addEventListener('click', () => {
         changeWeek(-1);
@@ -898,7 +922,7 @@ function initializeEventListeners() {
 
         document.getElementById('save-plan').addEventListener('click', async () => {
             try {
-                await savePlan();
+                await handleSavePlan();
             } catch (error) {
                 console.error('Fehler beim Speichern:', error);
             }
