@@ -96,7 +96,7 @@ button:hover {
 }
 
 button.unsaved {
-    background-color: #ffffff7e;
+    background-color: #ffffff7e; /* Gelbe Farbe für Aufmerksamkeit */
 }
 
 #password-overlay {
@@ -162,50 +162,13 @@ button.unsaved {
     flex: 1;
 }
 
-#staff-pool, #notes-content, #daily-notes-content {
-    width: 220px;
+#staff-pool {
+    width: 180px;
     position: fixed;
-    left: 20px;
     background-color: var(--card-color);
-    border-radius: 8px;
-    padding: 15px;
     overflow-y: auto;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.editor-mode #staff-pool {
-    top: 100px;
-    height: calc(40vh - 100px);
-}
-
-.editor-mode #notes-content {
-    top: calc(40vh + 20px);
-    height: 25vh;
-}
-
-.editor-mode #daily-notes-content {
-    top: calc(65vh + 40px);
-    height: calc(35vh - 60px);
-}
-
-.viewer-mode #notes-content {
-    top: 100px;
-    height: 40vh;
-}
-
-.viewer-mode #daily-notes-content {
-    top: calc(40vh + 120px);
-    height: calc(60vh - 140px);
-}
-
-#notes-content h3, #daily-notes-content h3 {
-    margin-top: 0;
-    border-bottom: 1px solid var(--text-color);
-    padding-bottom: 5px;
-}
-
-#notes-content p, #daily-notes-content p {
-    margin-top: 10px;
+    padding: 20px;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
 }
 
 #staff-pool h2 {
@@ -247,7 +210,6 @@ button.unsaved {
 }
 
 #workplan-area {
-    margin-left: 260px;
     flex: 1;
     padding: 30px;
     display: flex;
@@ -310,7 +272,8 @@ button.unsaved {
 }
 
 #notes-input, #daily-notes-input {
-    width: 100%;
+    width: 50%;
+    margin: 10px auto;
     background-color: var(--background-color);
     color: var(--text-color);
     border: 1px solid var(--text-color);
@@ -318,11 +281,36 @@ button.unsaved {
     padding: 10px;
     resize: vertical;
     display: block;
-    margin-top: 10px;
+}
+
+#notes-content, #daily-notes-content {
+    background-color: var(--card-color);
+    border-radius: 8px;
+    padding: 15px;
+    margin: 10px;
+    width: 180px;
+    position: fixed;
+    overflow-y: auto;
+}
+
+/* Styling für die Notizen-Anzeigefelder im Viewer-Modus */
+.viewer-mode #notes-content, .viewer-mode #daily-notes-content {
+    background-color: var(--card-color);
+    border-radius: 8px;
+    padding: 15px;
+    margin: 10px;
+    width: 180px;
+    position: fixed;
+    top: 100px; /* Beispielwert, anpassen je nach Bedarf */
+    left: 10px;
+    overflow-y: auto;
+}
+
+.viewer-mode #daily-notes-content {
+    top: 200px; /* Beispielwert, unterhalb von #notes-content positioniert */
 }
 
 #button-area {
-    margin-left: 260px;
     margin-top: 0px;
     display: flex;
     justify-content: center;
