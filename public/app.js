@@ -22,26 +22,33 @@ const staffMembers = {
     aa: ['Becker', 'Fröhlich', 'Martin', 'Torki']
 };
 let currentNotes = '';
+let serverPlan = {}; // Variable zum Speichern des Serverplans
+
+// Passwort-Keys für localStorage
+const VIEWER_PASSWORD_KEY = 'viewerPasswordAccepted';
+const EDITOR_PASSWORD_KEY = 'editorPasswordAccepted';
 
 // Initialisierung der Anwendung
 document.addEventListener('DOMContentLoaded', async () => {
     checkBrowserCompatibility();
     initializeWeekPicker(); // Diese Funktion ist jetzt leer
     if (isEditorMode()) {
+        initializePasswordProtection('editor'); // Editor-Modus
         initializeWorkplaceCards();
         initializeStatusCards();
         initializeDragAndDrop();
     } else {
+        initializePasswordProtection('viewer'); // Viewer-Modus
         initializeWorkplaceCards();
         initializeStatusCards();
         initializeReadOnlyView();
-        await initializePasswordProtection();
     }
     initializeEventListeners();
     initializeNotesEventListeners();
     setCurrentWeek();
     await loadPlan();
     updateUI();
+    updateSaveButtonState(); // Save-Button-Zustand initial prüfen
 });
 
 // Überprüfung, ob im Editor-Modus
@@ -300,7 +307,9 @@ async function loadPlan() {
         await fetchAndStoreAllPlans();
         if (!loadPlanFromLocalStorage()) {
             initializeEmptyWeek();
+            savePlanToLocalStorage(); // Speichere initialen leeren Plan
         }
+        serverPlan = JSON.parse(localStorage.getItem(`plan_${currentWeek.year}_KW${currentWeek.week}`)) || {};
         updateUI();
     } else {
         try {
@@ -312,6 +321,7 @@ async function loadPlan() {
                     week: currentWeek.week,
                     ...planData
                 };
+                serverPlan = { ...currentWeek }; // Speichere den Serverplan
                 currentNotes = planData.notes || '';
                 updateUI();
                 loadNotes();
@@ -331,15 +341,15 @@ async function loadPlan() {
 const VIEWER_PASSWORD = 'Radiologie1!';
 const EDITOR_PASSWORD = 'Kandinsky1!';
 
-// Funktion für die Passwortschutz
-async function initializePasswordProtection() {
+// Initialisierung der Passwortschutzfunktion
+async function initializePasswordProtection(mode) {
     const overlay = createPasswordOverlay();
     document.body.appendChild(overlay);
 
-    showPasswordOverlay('viewer');
+    showPasswordOverlay(mode);
 
     // Prüfe, ob das Passwort bereits akzeptiert wurde und noch gültig ist
-    const storedExpiryTime = localStorage.getItem('passwordAccepted');
+    const storedExpiryTime = localStorage.getItem(mode === 'editor' ? EDITOR_PASSWORD_KEY : VIEWER_PASSWORD_KEY);
     if (storedExpiryTime && new Date().getTime() < storedExpiryTime) {
         overlay.style.display = 'none';
     }
@@ -398,7 +408,7 @@ function checkPassword(overlay, mode) {
     if (passwordInput.value === correctPassword) {
         if (rememberCheckbox.checked) {
             const expiryTime = new Date().getTime() + 24 * 60 * 60 * 1000; // 24 Stunden ab jetzt
-            localStorage.setItem('passwordAccepted', expiryTime);
+            localStorage.setItem(mode === 'editor' ? EDITOR_PASSWORD_KEY : VIEWER_PASSWORD_KEY, expiryTime);
         }
         overlay.style.opacity = '0';
         setTimeout(() => {
@@ -406,7 +416,9 @@ function checkPassword(overlay, mode) {
         }, 500);
 
         if (mode === 'editor') {
-            window.location.href = 'editor.html';
+            // Im Editor-Modus bereits in editor.html
+        } else {
+            // Im Viewer-Modus nichts weiter notwendig
         }
     } else {
         alert('Falsches Passwort. Bitte versuchen Sie es erneut.');
@@ -427,7 +439,20 @@ function initializeEmptyWeek() {
 
 // Wochenplan speichern
 async function savePlan() {
-    const planData = JSON.stringify({ ...currentWeek, notes: currentNotes });
+    const planData = JSON.stringify({ 
+        year: currentWeek.year,
+        week: currentWeek.week,
+        ...currentWeek,
+        notes: currentWeek.notes, // Wochennotizen
+        // Einzelne Tagesnotizen
+        1: { ...currentWeek[1], notes: currentWeek[1].notes || '' },
+        2: { ...currentWeek[2], notes: currentWeek[2].notes || '' },
+        3: { ...currentWeek[3], notes: currentWeek[3].notes || '' },
+        4: { ...currentWeek[4], notes: currentWeek[4].notes || '' },
+        5: { ...currentWeek[5], notes: currentWeek[5].notes || '' },
+        6: { ...currentWeek[6], notes: currentWeek[6].notes || '' },
+        7: { ...currentWeek[7], notes: currentWeek[7].notes || '' },
+    });
     try {
         const response = await fetch('/api/save-plan', {
             method: 'POST',
@@ -439,8 +464,11 @@ async function savePlan() {
         if (!response.ok) {
             throw new Error('Fehler beim Speichern des Wochenplans');
         } else {
-            localStorage.removeItem(`plan_${currentWeek.year}_KW${currentWeek.week}`);
-            checkForUnsavedChanges();
+            const savedPlan = await response.json();
+            // Aktualisiere serverPlan nach dem Speichern
+            serverPlan = JSON.parse(JSON.stringify(currentWeek));
+            localStorage.setItem(`plan_${currentWeek.year}_KW${currentWeek.week}`, JSON.stringify(currentWeek));
+            updateSaveButtonState(); // Button-Zustand aktualisieren
         }
     } catch (error) {
         console.error('Fehler beim Speichern:', error);
@@ -464,8 +492,8 @@ function saveNotes() {
 function loadNotes() {
     const notesInput = document.getElementById('notes-input');
     const dailyNotesInput = document.getElementById('daily-notes-input');
-    const notesContent = document.getElementById('notes-content');
-    const dailyNotesContent = document.getElementById('daily-notes-content');
+    const notesDisplay = document.getElementById('notes-display');
+    const dailyNotesDisplay = document.getElementById('daily-notes-display');
     
     if (notesInput) {
         notesInput.value = currentWeek.notes || '';
@@ -475,12 +503,12 @@ function loadNotes() {
         dailyNotesInput.value = currentWeek[currentDay].notes || '';
     }
     
-    if (notesContent) {
-        notesContent.textContent = currentWeek.notes || '';
+    if (notesDisplay) {
+        notesDisplay.textContent = currentWeek.notes || 'Keine Wochennotizen.';
     }
     
-    if (dailyNotesContent) {
-        dailyNotesContent.textContent = currentWeek[currentDay].notes || '';
+    if (dailyNotesDisplay) {
+        dailyNotesDisplay.textContent = currentWeek[currentDay].notes || 'Keine Tagesnotizen.';
     }
 }
 
@@ -497,6 +525,7 @@ function loadPlanFromLocalStorage() {
     const planData = localStorage.getItem(key);
     if (planData) {
         currentWeek = JSON.parse(planData);
+        serverPlan = JSON.parse(planData); // Initialisiere serverPlan mit geladenem Plan
         return true;
     }
     return false;
@@ -522,19 +551,26 @@ async function fetchAndStoreAllPlans() {
     }
 }
 
-
+// Überprüfen, ob Änderungen vorhanden sind und den Save-Knopf entsprechend aktualisieren
 function checkForUnsavedChanges() {
     const key = `plan_${currentWeek.year}_KW${currentWeek.week}`;
     const savedPlan = localStorage.getItem(key);
     const saveButton = document.getElementById('save-plan');
 
-    if (savedPlan) {
-        saveButton.textContent = 'Änderungen Speichern';
-        saveButton.classList.add('unsaved');
+    if (savedPlan && JSON.stringify(currentWeek) !== JSON.stringify(serverPlan)) {
+        saveButton.textContent = 'Speichern';
+        saveButton.classList.add('glow');
+        saveButton.disabled = false;
     } else {
-        saveButton.textContent = 'Speicher aktuell';
-        saveButton.classList.remove('unsaved')
+        saveButton.textContent = 'Gespeichert';
+        saveButton.classList.remove('glow');
+        saveButton.disabled = true;
     }
+}
+
+// Funktion zum Aktualisieren des Save-Button-Zustands
+function updateSaveButtonState() {
+    checkForUnsavedChanges();
 }
 
 // UI aktualisieren
@@ -721,10 +757,18 @@ function initializeNotesEventListeners() {
     const notesInput = document.getElementById('notes-input');
     const dailyNotesInput = document.getElementById('daily-notes-input');
     if (notesInput) {
-        notesInput.addEventListener('input', saveNotes);
+        notesInput.addEventListener('input', () => {
+            currentWeek.notes = notesInput.value;
+            savePlan();
+            checkForUnsavedChanges();
+        });
     }
     if (dailyNotesInput) {
-        dailyNotesInput.addEventListener('input', saveNotes);
+        dailyNotesInput.addEventListener('input', () => {
+            currentWeek[currentDay].notes = dailyNotesInput.value;
+            savePlan();
+            checkForUnsavedChanges();
+        });
     }
 }
 
@@ -879,6 +923,7 @@ function initializeEventListeners() {
     initializeNotesEventListeners();
 }
 
+// Funktion zum Prompten des Editor-Passworts
 function promptForEditorPassword() {
     showPasswordOverlay('editor');
 }
@@ -1145,6 +1190,7 @@ function exportAsPDF() {
         // Wochenübersicht
         doc.addPage();
         doc.setFontSize(16);
+        doc.setTextColor(0);
         doc.text(`Wochenübersicht KW ${currentWeek.week}, ${currentWeek.year} (${dateRange})`, 10, 20);
 
         const tableData = [];
@@ -1265,4 +1311,24 @@ function updateCardBackgrounds() {
             card.style.backgroundColor = 'var(--card-color)';
         }
     });
+}
+
+// Funktionen für die Save-Button-Überprüfung
+function checkForUnsavedChanges() {
+    const key = `plan_${currentWeek.year}_KW${currentWeek.week}`;
+    const savedPlan = localStorage.getItem(key);
+    const saveButton = document.getElementById('save-plan');
+
+    if (savedPlan && JSON.stringify(currentWeek) !== JSON.stringify(serverPlan)) {
+        saveButton.textContent = 'Speichern';
+        saveButton.classList.add('glow');
+    } else {
+        saveButton.textContent = 'Speichern';
+        saveButton.classList.remove('glow');
+    }
+}
+
+// Funktion zum Aktualisieren des Save-Button-Zustands
+function updateSaveButtonState() {
+    checkForUnsavedChanges();
 }
