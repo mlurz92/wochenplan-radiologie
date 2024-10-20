@@ -1,61 +1,613 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <title>Wochenplan Radiologie</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Schriftarten und Stylesheets -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body class="viewer-mode">
-    <div class="wrapper">
-        <nav>
-            <div class="nav-left">
-                <h1>Wochenplan</h1>
-                <div id="week-display">
-                    <button id="prev-week">&lt;</button>
-                    <div id="week-picker-container">
-                        <span id="calendar-icon">📅</span>
-                        <input type="text" id="week-picker" class="hidden">
-                        <span id="current-week"></span>
-                    </div>
-                    <button id="next-week">&gt;</button>
-                </div>
-            </div>
-            <div class="nav-right">
-                <button class="day-button" data-day="1">Mo</button>
-                <button class="day-button" data-day="2">Di</button>
-                <button class="day-button" data-day="3">Mi</button>
-                <button class="day-button" data-day="4">Do</button>
-                <button class="day-button" data-day="5">Fr</button>
-                <button class="day-button" data-day="6">Sa</button>
-                <button class="day-button" data-day="7">So</button>
-            </div>
-        </nav>
+/* public/styles.css */
 
-        <div id="main-container">
-            <!-- Notizen-Anzeigefelder -->
-            <div id="notes-content"></div>
-            <div id="daily-notes-content"></div>
+:root {
+    --background-color: #2a2c30;
+    --card-color: #4848488f;
+    --text-color: #f0f0f0;
+    --accent-color: #454545;
+    --red: #FF696B;
+    --yellow: #FFF77B;
+    --green: #96ff6d;
+    --staff-item-background: rgba(224, 231, 255, 0.1);
+}
 
-            <div id="workplan-area" role="main">
-                <div id="workplace-cards"></div>
-                <div id="additional-status-cards"></div>
-            </div>
-        </div>
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 0;
+    font-size: 16px;
+}
 
-        <div id="button-area">
-            <button id="week-overview">Wochenübersicht</button>
-            <button id="pdf-export">Export als PDF</button>
-            <button id="edit-mode">Bearbeiten</button>
-        </div>
-    </div>
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
 
-    <!-- Skripte -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.20/jspdf.plugin.autotable.min.js"></script>
-    <script src="app.js"></script>
-</body>
-</html>
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--card-color);
+    padding: 10px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.nav-left, .nav-right {
+    display: flex;
+    align-items: center;
+}
+
+h1 {
+    margin: 0;
+    margin-right: 20px;
+    font-size: 24px;
+}
+
+#week-display {
+    display: flex;
+    align-items: center;
+}
+
+#week-picker-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+#week-picker {
+    position: absolute;
+    top: 30px;
+    left: 0;
+    z-index: 100;
+    background-color: var(--card-color);
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.hidden {
+    display: none;
+}
+
+#calendar-icon {
+    margin-right: 5px;
+    cursor: pointer;
+}
+
+button {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin: 5px 5px;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+.day-button.active {
+    background-color: var(--text-color);
+    color: var(--background-color);
+}
+
+/* Styling für den Speichern-Knopf im ungespeicherten Zustand */
+button#save-plan.unsaved {
+    background-color: #ff9800; /* Orange für Hervorhebung */
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+button#save-plan.unsaved:hover {
+    background-color: #e68900;
+}
+
+/* Styling für den Speichern-Knopf im gespeicherten Zustand */
+button#save-plan:disabled {
+    background-color: #cccccc; /* Grau für deaktiviert */
+    color: #666666;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+#password-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(5px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    transition: opacity 0.5s ease;
+}
+
+.password-container div {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.password-container input[type="checkbox"] {
+    margin-right: 5px;
+}
+
+.password-container {
+    background-color: var(--card-color);
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.password-container h2 {
+    margin-bottom: 20px;
+}
+
+#password-input {
+    width: 200px;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid var(--text-color);
+    background-color: var(--background-color);
+    color: var(--text-color);
+    border-radius: 4px;
+}
+
+#submit-password {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#submit-password:hover {
+    opacity: 0.9;
+}
+
+#main-container {
+    display: flex;
+    flex: 1;
+    margin-right: 220px; /* Platz für die Notizanzeige */
+    padding: 0 10px;
+}
+
+#staff-pool {
+    width: 200px;
+    position: fixed;
+    right: 10px;
+    top: 70px;
+    background-color: var(--card-color);
+    overflow-y: auto;
+    padding: 20px;
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--text-color);
+    border-radius: 8px;
+}
+
+#staff-pool h2 {
+    font-size: 18px;
+    margin-top: 0;
+}
+
+.staff-list-items {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.staff-list-items li {
+    background-color: var(--staff-item-background);
+    margin: 5px 0;
+    padding: 5px 10px;
+    border-radius: 10px;
+    cursor: move;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.staff-list-items li.assigned {
+    color: rgba(222, 221, 221, 0.7);
+    text-decoration: line-through;
+    cursor: default;
+}
+
+.staff-list-items li .remove-btn {
+    background: none;
+    border: none;
+    color: #ff0000;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+}
+
+#workplan-area {
+    flex: 1;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 50px;
+}
+
+#workplace-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px 100px;
+    max-width: 1400px;
+    margin: 0 auto;
+    justify-content: center;
+}
+
+#additional-status-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, auto);
+    gap: 40px 100px;
+    max-width: 1400px;
+    margin: 0 auto;
+    justify-content: center;
+}
+
+.workplace-card, .status-card {
+    max-width: 450px;
+    background-color: var(--card-color);
+    border-radius: 8px;
+    padding: 15px;
+    position: relative;
+    overflow: hidden;
+    border: 2px solid transparent;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.3s ease, background-color 0.3s ease;
+    width: 100%;
+    display: block;
+}
+
+.workplace-card:hover, .status-card:hover {
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
+}
+
+.workplace-card h2, .status-card h2 {
+    margin-top: 0;
+    font-size: 18px;
+}
+
+.staff-list h3 {
+    font-size: 16px;
+    margin: 10px 0 5px;
+}
+
+#notes-area, #notes-display {
+    background-color: var(--card-color);
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 20px;
+}
+
+#notes-input, #daily-notes-input {
+    width: 100%;
+    max-width: 400px;
+    margin: 10px auto;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    border: 1px solid var(--text-color);
+    border-radius: 4px;
+    padding: 10px;
+    resize: vertical;
+    display: block;
+}
+
+#notes-content, #daily-notes-content {
+    background-color: var(--card-color);
+    border: 1px solid var(--text-color);
+    border-radius: 8px;
+    padding: 10px;
+    margin: 10px;
+    width: 200px;
+    position: fixed;
+    top: 100px;
+    right: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+    max-height: 300px;
+}
+
+#daily-notes-content {
+    top: 220px;
+}
+
+#button-area {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 20px;
+    position: fixed;
+    bottom: 10px;
+    width: calc(100% - 220px); /* Platz für die Notizanzeige */
+    left: 200px; /* Platz für die Notizanzeige */
+    background-color: rgba(42, 44, 48, 0.9);
+    border-top: 1px solid var(--text-color);
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+@keyframes glowRed {
+    0% { box-shadow: 0 5px 15px rgba(255, 105, 107, 0.6); }
+    50% { box-shadow: 5px 5px 15px rgba(255, 105, 107, 0.8); }
+    100% { box-shadow: 0 5px 15px rgba(255, 105, 107, 0.6); }
+}
+
+@keyframes glowYellow {
+    0% { box-shadow: 0 5px 15px rgba(255, 247, 123, 0.6); }
+    50% { box-shadow: 5px 5px 15px rgba(255, 247, 123, 0.8); }
+    100% { box-shadow: 0 5px 15px rgba(255, 247, 123, 0.6); }
+}
+
+@keyframes glowGreen {
+    0% { box-shadow: 0 5px 15px rgba(151, 255, 109, 0.6); }
+    50% { box-shadow: 5px 5px 15px rgba(151, 255, 109, 0.8); }
+    100% { box-shadow: 0 5px 15px rgba(151, 255, 109, 0.6); }
+}
+
+.workplace-card.red, .status-card.red {
+    animation: glowRed 3s infinite;
+    background-color: rgba(255, 105, 107, 0.2);
+}
+
+.workplace-card.yellow, .status-card.yellow {
+    animation: glowYellow 3s infinite;
+    background-color: rgba(255, 247, 123, 0.2);
+}
+
+.workplace-card.green, .status-card.green {
+    animation: glowGreen 3s infinite;
+    background-color: rgba(151, 255, 109, 0.2);
+}
+
+/* Responsive Design */
+@media (max-width: 1300px) {
+    #additional-status-cards {
+        grid-template-columns: repeat(3, auto);
+    }
+}
+
+@media (max-width: 1100px) {
+    #workplace-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    #additional-status-cards {
+        grid-template-columns: repeat(3, auto);
+    }
+}
+
+@media (max-width: 1000px) {
+    #additional-status-cards {
+        grid-template-columns: repeat(2, auto);
+    }
+}
+
+@media (max-width: 900px) {
+    #workplace-cards {
+        grid-template-columns: 1fr;
+    }
+
+    #additional-status-cards {
+        grid-template-columns: 1fr;
+        grid-template-rows: repeat(8, auto);
+    }
+}
+
+@media (max-width: 768px) {
+    nav {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .nav-left, .nav-right {
+        width: 100%;
+        justify-content: center;
+        margin-bottom: 10px;
+    }
+
+    #main-container {
+        flex-direction: column;
+        margin-right: 0;
+    }
+
+    #staff-pool {
+        width: 100%;
+        position: relative;
+        margin-bottom: 20px;
+        padding: 10px;
+        box-shadow: none;
+        border: 1px solid var(--text-color);
+        border-radius: 8px;
+    }
+
+    #staff-pool h2 {
+        font-size: 16px;
+    }
+
+    .staff-list-items li {
+        font-size: 14px;
+    }
+
+    #button-area {
+        width: 100%;
+        left: 0;
+        border-radius: 0;
+    }
+
+    #notes-content, #daily-notes-content {
+        position: relative;
+        width: 100%;
+        max-width: none;
+        top: auto;
+        right: 0;
+        margin: 10px auto;
+    }
+}
+
+@media (max-width: 430px) {
+    body {
+        font-size: 14px;
+    }
+
+    h1 {
+        font-size: 20px;
+    }
+
+    nav {
+        flex-direction: column;
+        align-items: center;
+        padding: 10px;
+    }
+
+    .nav-left, .nav-right {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    button {
+        padding: 6px 8px;
+        font-size: 12px;
+        margin: 5px;
+    }
+
+    #workplace-cards, #additional-status-cards {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px 20px;
+    }
+
+    .workplace-card, .status-card {
+        padding: 10px;
+    }
+
+    .workplace-card h2, .status-card h2 {
+        font-size: 16px;
+    }
+
+    .staff-list h3 {
+        font-size: 14px;
+    }
+
+    #staff-pool {
+        position: relative;
+        width: 100%;
+        margin-bottom: 20px;
+        padding: 10px;
+        box-shadow: none;
+        border: 1px solid var(--text-color);
+        border-radius: 8px;
+    }
+
+    #staff-pool h2 {
+        font-size: 16px;
+    }
+
+    .staff-list-items li {
+        font-size: 12px;
+        padding: 5px;
+    }
+
+    #button-area {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    #notes-input, #daily-notes-input {
+        width: 100%;
+        font-size: 14px;
+    }
+
+    #notes-content, #daily-notes-content {
+        width: calc(100% - 20px);
+        position: relative;
+        top: auto;
+        left: auto;
+        margin: 10px auto;
+    }
+}
+
+@media (max-width: 414px) {
+    .wrapper {
+        padding: 10px;
+    }
+
+    h1 {
+        font-size: 18px;
+    }
+
+    button {
+        padding: 5px 8px;
+        font-size: 12px;
+    }
+
+    .staff-list-items li {
+        font-size: 12px;
+        padding: 5px;
+    }
+}
+
+/* Styling für die Notizen Überschriften */
+#notes-content::before,
+#daily-notes-content::before,
+#notes-input::before,
+#daily-notes-input::before {
+    content: attr(data-title);
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+/* Optional: Feinjustierung der Notizfelder */
+#notes-content,
+#daily-notes-content {
+    font-size: 14px;
+}
+
+#notes-input,
+#daily-notes-input {
+    font-size: 14px;
+}
+
+/* Entfernen der festen Positionierung der Notizfelder im Editor */
+.editor-mode #notes-input,
+.editor-mode #daily-notes-input {
+    position: static;
+    width: 100%;
+}
+
+/* Sicherstellen, dass die Notizanzeige im Viewer korrekt positioniert ist */
+.viewer-mode #notes-content,
+.viewer-mode #daily-notes-content {
+    position: fixed;
+    top: 100px;
+    right: 10px;
+    width: 200px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.viewer-mode #daily-notes-content {
+    top: 220px;
+}
+
+/* ... bestehender Code ... */
