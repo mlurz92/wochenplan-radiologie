@@ -67,6 +67,7 @@ app.get('/api/load-plan', (req, res) => {
   });
 });
 
+
 // Alle Wochenpläne abrufen
 app.get('/api/get-all-plans', (req, res) => {
   db.all(`SELECT year, week, plan FROM wochenplaene`, [], (err, rows) => {
