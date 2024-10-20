@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="editor-mode">
     <div class="wrapper">
         <nav>
             <div class="nav-left">
@@ -35,17 +35,7 @@
         </nav>
 
         <div id="main-container">
-            <div id="staff-pool">
-                <div id="fa-pool">
-                    <h2>Fachärzte</h2>
-                    <ul class="staff-list-items"></ul>
-                </div>
-                <div id="aa-pool">
-                    <h2>Assistenzärzte</h2>
-                    <ul class="staff-list-items"></ul>
-                </div>
-            </div>
-
+            <!-- Notiz-Sidebar entfernen im Editor-Modus -->
             <div id="workplan-area" role="main">
                 <div id="workplace-cards"></div>
                 <div id="additional-status-cards"></div>
