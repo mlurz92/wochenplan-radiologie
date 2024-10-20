@@ -266,50 +266,48 @@ button.unsaved {
     margin: 10px 0 5px;
 }
 
-#notes-area, #notes-display {
-    background-color: var(--card-color);
-    border-radius: 8px;
-    padding: 15px;
-    margin-top: 20px;
+#notes-display, 
+#daily-notes-display {
+  background-color: var(--card-color);
+  border-radius: 8px;
+  padding: 15px;
+  margin: 10px;
+  width: 180px;
+  position: fixed; 
+  top: 100px; 
+  left: 10px; 
+  overflow-y: auto;
 }
 
-#notes-input, #daily-notes-input {
-    width: 50%;
-    margin: 10px auto;
-    background-color: var(--background-color);
-    color: var(--text-color);
-    border: 1px solid var(--text-color);
-    border-radius: 4px;
-    padding: 10px;
-    resize: vertical;
-    display: block;
+#daily-notes-display {
+  top: 200px; 
 }
 
-#notes-content, #daily-notes-content {
-    background-color: var(--card-color);
-    border-radius: 8px;
-    padding: 15px;
-    margin: 10px;
-    width: 180px;
-    position: fixed;
-    overflow-y: auto;
+#workplan-area,
+#button-area {
+  margin-left: 200px; 
 }
 
-/* Styling für die Notizen-Anzeigefelder im Viewer-Modus */
-.viewer-mode #notes-content, .viewer-mode #daily-notes-content {
-    background-color: var(--card-color);
-    border-radius: 8px;
-    padding: 15px;
-    margin: 10px;
-    width: 180px;
-    position: fixed;
-    top: 100px;
-    left: 10px;
-    overflow-y: auto;
+.viewer-mode #notes-content, 
+.viewer-mode #daily-notes-content {
+  background-color: var(--card-color);
+  border-radius: 8px;
+  padding: 15px;
+  margin: 10px;
+  width: 180px;
+  position: fixed;
+  top: 100px;
+  left: 10px;
+  overflow-y: auto;
 }
 
 .viewer-mode #daily-notes-content {
-    top: 200px;
+  top: 200px;
+}
+
+.viewer-mode #workplan-area,
+.viewer-mode #button-area {
+  margin-left: 200px;
 }
 
 #button-area {
