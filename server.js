@@ -1,18 +1,27 @@
+// server.js
+
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
 const bodyParser = require('body-parser');
 const path = require('path');
+const basicAuth = require('express-basic-auth');
 
 const app = express();
 const port = process.env.PORT || 3000;
+const host = process.env.HOST || '0.0.0.0';
 
-app.use(cors());
+app.use(cors({
+  origin: 'https://wochenplan-radiologie.de', // Ersetzen Sie dies durch Ihre tatsächliche Domain
+  methods: ['GET', 'POST'],
+  credentials: true
+}));
 app.use(bodyParser.json());
 
 // SQLite-Datenbankverbindung
-const db = new sqlite3.Database('./wochenplan.db', (err) => {
+const dbPath = process.env.DATABASE_URL || './wochenplan.db';
+const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('Fehler beim Öffnen der Datenbank:', err.message);
   } else {
@@ -32,6 +41,20 @@ function initializeDatabase() {
     UNIQUE(year, week)
   )`);
 }
+
+// Basic Authentication Middleware für den Editor-Modus
+app.use('/editor.html', basicAuth({
+  users: { 'editor': 'Kandinsky1!' },
+  challenge: true,
+  realm: 'Editor Bereich'
+}));
+
+// Optional: Basic Authentication Middleware für den Viewer-Modus
+app.use('/', basicAuth({
+  users: { 'viewer': 'Radiologie1!' },
+  challenge: true,
+  realm: 'Viewer Bereich'
+}));
 
 // Wochenplan speichern
 app.post('/api/save-plan', (req, res) => {
@@ -67,7 +90,6 @@ app.get('/api/load-plan', (req, res) => {
   });
 });
 
-
 // Alle Wochenpläne abrufen
 app.get('/api/get-all-plans', (req, res) => {
   db.all(`SELECT year, week, plan FROM wochenplaene`, [], (err, rows) => {
@@ -93,6 +115,6 @@ app.get('*', (req, res) => {
 });
 
 // HTTP-Server starten
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Server läuft auf http://0.0.0.0:${port}`);
+app.listen(port, host, () => {
+  console.log(`Server läuft auf http://${host}:${port}`);
 });
