@@ -1,102 +1,98 @@
-// server.js
-
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const bodyParser = require('body-parser');
 const sqlite3 = require('sqlite3').verbose();
-const dotenv = require('dotenv');
+const bodyParser = require('body-parser');
 const path = require('path');
 
-dotenv.config();
-
 const app = express();
-const PORT = process.env.PORT || 3000;
+const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(bodyParser.json());
+
+// SQLite-Datenbankverbindung
+const db = new sqlite3.Database('./wochenplan.db', (err) => {
+  if (err) {
+    console.error('Fehler beim Öffnen der Datenbank:', err.message);
+  } else {
+    console.log('Verbindung zur SQLite-Datenbank hergestellt.');
+    initializeDatabase();
+  }
+});
+
+// Datenbanktabelle initialisieren
+function initializeDatabase() {
+  db.run(`CREATE TABLE IF NOT EXISTS wochenplaene (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    year INTEGER,
+    week INTEGER,
+    plan TEXT,
+    notes TEXT,
+    UNIQUE(year, week)
+  )`);
+}
+
+// Wochenplan speichern
+app.post('/api/save-plan', (req, res) => {
+  const { year, week, notes, ...planData } = req.body;
+  const planJson = JSON.stringify(planData);
+
+  db.run(`INSERT OR REPLACE INTO wochenplaene (year, week, plan, notes) VALUES (?, ?, ?, ?)`,
+    [year, week, planJson, notes],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: 'Fehler beim Speichern des Plans' });
+        return console.error(err.message);
+      }
+      res.json({ message: 'Plan erfolgreich gespeichert', id: this.lastID });
+    }
+  );
+});
+
+// Wochenplan laden
+app.get('/api/load-plan', (req, res) => {
+  const { year, week } = req.query;
+
+  db.get(`SELECT plan, notes FROM wochenplaene WHERE year = ? AND week = ?`, [year, week], (err, row) => {
+    if (err) {
+      res.status(500).json({ error: 'Fehler beim Laden des Plans' });
+      return console.error(err.message);
+    }
+    if (row) {
+      res.json({ ...JSON.parse(row.plan), notes: row.notes });
+    } else {
+      res.status(404).json({ error: 'Plan nicht gefunden' });
+    }
+  });
+});
+
+
+// Alle Wochenpläne abrufen
+app.get('/api/get-all-plans', (req, res) => {
+  db.all(`SELECT year, week, plan FROM wochenplaene`, [], (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: 'Fehler beim Abrufen der Wochenpläne' });
+      return console.error(err.message);
+    }
+    const plans = rows.map(row => ({
+      year: row.year,
+      week: row.week,
+      ...JSON.parse(row.plan)
+    }));
+    res.json(plans);
+  });
+});
+
+// Statische Dateien servieren
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Verbindung zur SQLite-Datenbank herstellen
-const db = new sqlite3.Database(process.env.DATABASE_URL, (err) => {
-    if (err) {
-        console.error('Fehler beim Verbinden zur Datenbank:', err.message);
-    } else {
-        console.log('Verbunden zur SQLite-Datenbank.');
-    }
+// Catch-all Route für das Frontend-Routing
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Tabelle erstellen, falls sie nicht existiert
-db.serialize(() => {
-    db.run(`CREATE TABLE IF NOT EXISTS plans (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        year INTEGER NOT NULL,
-        week INTEGER NOT NULL,
-        data TEXT NOT NULL,
-        UNIQUE(year, week)
-    )`);
-});
-
-// API-Endpunkt zum Speichern des Wochenplans
-app.post('/api/save-plan', (req, res) => {
-    const { year, week, ...planData } = req.body;
-    const data = JSON.stringify(planData);
-
-    const sql = `INSERT INTO plans (year, week, data)
-                 VALUES (?, ?, ?)
-                 ON CONFLICT(year, week) DO UPDATE SET data=excluded.data`;
-
-    db.run(sql, [year, week, data], function(err) {
-        if (err) {
-            console.error('Fehler beim Speichern des Plans:', err.message);
-            res.status(500).json({ error: 'Fehler beim Speichern des Plans' });
-        } else {
-            res.status(200).json({ message: 'Plan erfolgreich gespeichert' });
-        }
-    });
-});
-
-// API-Endpunkt zum Laden des Wochenplans
-app.get('/api/load-plan', (req, res) => {
-    const { year, week } = req.query;
-
-    if (!year || !week) {
-        return res.status(400).json({ error: 'Year und week Parameter sind erforderlich' });
-    }
-
-    const sql = `SELECT data FROM plans WHERE year = ? AND week = ?`;
-
-    db.get(sql, [year, week], (err, row) => {
-        if (err) {
-            console.error('Fehler beim Laden des Plans:', err.message);
-            res.status(500).json({ error: 'Fehler beim Laden des Plans' });
-        } else if (row) {
-            res.status(200).json(JSON.parse(row.data));
-        } else {
-            res.status(404).json({ error: 'Plan nicht gefunden' });
-        }
-    });
-});
-
-// API-Endpunkt zum Abrufen aller Pläne (für Editor-Modus)
-app.get('/api/get-all-plans', (req, res) => {
-    const sql = `SELECT year, week, data FROM plans`;
-
-    db.all(sql, [], (err, rows) => {
-        if (err) {
-            console.error('Fehler beim Abrufen aller Pläne:', err.message);
-            res.status(500).json({ error: 'Fehler beim Abrufen aller Pläne' });
-        } else {
-            const allPlans = rows.map(row => ({
-                year: row.year,
-                week: row.week,
-                ...JSON.parse(row.data)
-            }));
-            res.status(200).json(allPlans);
-        }
-    });
-});
-
-// Starten des Servers
-app.listen(PORT, () => {
-    console.log(`Server läuft auf Port ${PORT}`);
+// HTTP-Server starten
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Server läuft auf http://0.0.0.0:${port}`);
 });
