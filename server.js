@@ -90,14 +90,6 @@ app.get('/api/get-all-plans', (req, res) => {
     });
 });
 
-// Statische Dateien servieren
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Catch-all Route für das Frontend-Routing
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
 // HTTP-Server starten
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server läuft auf http://0.0.0.0:${port}`);
