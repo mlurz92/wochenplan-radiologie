@@ -2,13 +2,12 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Wochenplan Radiologie</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Schriftarten und Stylesheets -->
+    <title>Wochenplan Radiologie</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
-<body class="viewer-mode">
+<body>
     <div class="wrapper">
         <nav>
             <div class="nav-left">
@@ -17,7 +16,6 @@
                     <button id="prev-week">&lt;</button>
                     <div id="week-picker-container">
                         <span id="calendar-icon">📅</span>
-                        <input type="text" id="week-picker" class="hidden">
                         <span id="current-week"></span>
                     </div>
                     <button id="next-week">&gt;</button>
@@ -33,29 +31,22 @@
                 <button class="day-button" data-day="7">So</button>
             </div>
         </nav>
-
         <div id="main-container">
-            <!-- Notizen-Anzeigefelder -->
-            <div id="notes-content"></div>
-            <div id="daily-notes-content"></div>
-
+            <div id="daily-notes-content" class="notes-display"></div>
             <div id="workplan-area" role="main">
                 <div id="workplace-cards"></div>
                 <div id="additional-status-cards"></div>
             </div>
         </div>
-
         <div id="button-area">
             <button id="week-overview">Wochenübersicht</button>
             <button id="pdf-export">Export als PDF</button>
             <button id="edit-mode">Bearbeiten</button>
         </div>
     </div>
-
-    <!-- Skripte -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.20/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
