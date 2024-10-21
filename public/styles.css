@@ -266,6 +266,35 @@ button.unsaved {
     margin: 10px 0 5px;
 }
 
+/* Neue Hover-Glow-Effekte */
+.workplace-card:hover, .status-card:hover {
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
+}
+
+.workplace-card.red:hover, .status-card.red:hover {
+    box-shadow: 0 0 15px rgba(255, 105, 107, 0.8);
+}
+
+.workplace-card.yellow:hover, .status-card.yellow:hover {
+    box-shadow: 0 0 15px rgba(255, 247, 123, 0.8);
+}
+
+.workplace-card.green:hover, .status-card.green:hover {
+    box-shadow: 0 0 15px rgba(151, 255, 109, 0.8);
+}
+
+.workplace-card.red, .status-card.red {
+    background-color: rgba(255, 105, 107, 0.2);
+}
+
+.workplace-card.yellow, .status-card.yellow {
+    background-color: rgba(255, 247, 123, 0.2);
+}
+
+.workplace-card.green, .status-card.green {
+    background-color: rgba(151, 255, 109, 0.2);
+}
+
 #daily-notes-input {
     width: calc(50% - 20px);
     margin: 0 auto;
@@ -306,39 +335,6 @@ button.unsaved {
     flex-wrap: wrap;
     gap: 10px;
     padding: 20px;
-}
-
-@keyframes glowRed {
-    0% { box-shadow: 0 5px 15px rgba(255, 105, 107, 0.6); }
-    50% { box-shadow: 5px 5px 15px rgba(255, 105, 107, 0.8); }
-    100% { box-shadow: 0 5px 15px rgba(255, 105, 107, 0.6); }
-}
-
-@keyframes glowYellow {
-    0% { box-shadow: 0 5px 15px rgba(255, 247, 123, 0.6); }
-    50% { box-shadow: 5px 5px 15px rgba(255, 247, 123, 0.8); }
-    100% { box-shadow: 0 5px 15px rgba(255, 247, 123, 0.6); }
-}
-
-@keyframes glowGreen {
-    0% { box-shadow: 0 5px 15px rgba(151, 255, 109, 0.6); }
-    50% { box-shadow: 5px 5px 15px rgba(151, 255, 109, 0.8); }
-    100% { box-shadow: 0 5px 15px rgba(151, 255, 109, 0.6); }
-}
-
-.workplace-card.red, .status-card.red {
-    animation: glowRed 3s infinite;
-    background-color: rgba(255, 105, 107, 0.2);
-}
-
-.workplace-card.yellow, .status-card.yellow {
-    animation: glowYellow 3s infinite;
-    background-color: rgba(255, 247, 123, 0.2);
-}
-
-.workplace-card.green, .status-card.green {
-    animation: glowGreen 3s infinite;
-    background-color: rgba(151, 255, 109, 0.2);
 }
 
 /* Responsive Design */
