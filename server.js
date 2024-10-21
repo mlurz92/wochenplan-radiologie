@@ -28,18 +28,16 @@ function initializeDatabase() {
     year INTEGER,
     week INTEGER,
     plan TEXT,
-    notes TEXT,
     UNIQUE(year, week)
   )`);
 }
 
 // Wochenplan speichern
 app.post('/api/save-plan', (req, res) => {
-  const { year, week, notes, ...planData } = req.body;
-  const planJson = JSON.stringify(planData);
+  const { year, week, plan } = req.body;
 
-  db.run(`INSERT OR REPLACE INTO wochenplaene (year, week, plan, notes) VALUES (?, ?, ?, ?)`,
-    [year, week, planJson, notes],
+  db.run(`INSERT OR REPLACE INTO wochenplaene (year, week, plan) VALUES (?, ?, ?)`,
+    [year, week, plan],
     function(err) {
       if (err) {
         res.status(500).json({ error: 'Fehler beim Speichern des Plans' });
@@ -50,17 +48,18 @@ app.post('/api/save-plan', (req, res) => {
   );
 });
 
+
 // Wochenplan laden
 app.get('/api/load-plan', (req, res) => {
   const { year, week } = req.query;
 
-  db.get(`SELECT plan, notes FROM wochenplaene WHERE year = ? AND week = ?`, [year, week], (err, row) => {
+  db.get(`SELECT plan FROM wochenplaene WHERE year = ? AND week = ?`, [year, week], (err, row) => {
     if (err) {
       res.status(500).json({ error: 'Fehler beim Laden des Plans' });
       return console.error(err.message);
     }
     if (row) {
-      res.json({ ...JSON.parse(row.plan), notes: row.notes });
+      res.json(JSON.parse(row.plan));
     } else {
       res.status(404).json({ error: 'Plan nicht gefunden' });
     }
