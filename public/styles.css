@@ -96,7 +96,7 @@ button:hover {
 }
 
 button.unsaved {
-    background-color: #ffffff7e;
+    background-color: #ffffff7e; /* Gelbe Farbe für Aufmerksamkeit */
 }
 
 #password-overlay {
@@ -220,7 +220,7 @@ button.unsaved {
 #workplace-cards {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 30px 80px;
+    gap: 40px 100px;
     max-width: 1400px;
     margin: 0 auto;
     justify-content: center;
@@ -230,7 +230,7 @@ button.unsaved {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     grid-template-rows: repeat(2, auto);
-    gap: 30px 80px;
+    gap: 40px 100px;
     max-width: 1400px;
     margin: 0 auto;
     justify-content: center;
@@ -240,7 +240,7 @@ button.unsaved {
     max-width: 450px;
     background-color: var(--card-color);
     border-radius: 8px;
-    padding: 12px;
+    padding: 15px;
     position: relative;
     overflow: hidden;
     border: 2px solid transparent;
@@ -256,44 +256,58 @@ button.unsaved {
 
 .workplace-card h2, .status-card h2 {
     margin-top: 0;
-    font-size: 16px;
+    font-size: 18px;
 }
 
 .staff-list h3 {
-    font-size: 14px;
+    font-size: 16px;
     margin: 10px 0 5px;
 }
 
-#daily-notes-input {
-    width: calc(100% - 20px);
-    margin: 10px;
+#notes-area, #notes-display {
+    background-color: var(--card-color);
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 20px;
+}
+
+#notes-input, #daily-notes-input {
+    width: 50%;
+    margin: 10px auto;
     background-color: var(--background-color);
     color: var(--text-color);
     border: 1px solid var(--text-color);
     border-radius: 4px;
     padding: 10px;
     resize: vertical;
+    display: block;
 }
 
-#daily-notes-content {
+#notes-content, #daily-notes-content {
     background-color: var(--card-color);
-    border: 1px solid var(--text-color);
-    border-radius: 4px;
+    border-radius: 8px;
     padding: 15px;
     margin: 10px;
     width: 180px;
     position: fixed;
-    top: 100px;
-    left: 10px;
     overflow-y: auto;
-    max-height: calc(100vh - 120px);
 }
 
-#daily-notes-content::before {
-    content: 'Tagesnotizen';
-    display: block;
-    font-weight: bold;
-    margin-bottom: 5px;
+/* Styling für die Notizen-Anzeigefelder im Viewer-Modus */
+.viewer-mode #notes-content, .viewer-mode #daily-notes-content {
+    background-color: var(--card-color);
+    border-radius: 8px;
+    padding: 15px;
+    margin: 10px;
+    width: 180px;
+    position: fixed;
+    top: 100px; /* Beispielwert, anpassen je nach Bedarf */
+    left: 10px;
+    overflow-y: auto;
+}
+
+.viewer-mode #daily-notes-content {
+    top: 200px; /* Beispielwert, unterhalb von #notes-content positioniert */
 }
 
 #button-area {
@@ -340,11 +354,8 @@ button.unsaved {
 
 /* Responsive Design */
 @media (max-width: 1300px) {
-    #workplace-cards {
-        gap: 20px 60px;
-    }
     #additional-status-cards {
-        gap: 20px 60px;
+        grid-template-columns: repeat(3, auto);
     }
 }
 
