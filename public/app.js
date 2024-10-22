@@ -36,7 +36,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         initializeReadOnlyView();
         await initializePasswordProtection();
     }
-    initializeEventListeners();
     initializeNotesEventListeners();
     setCurrentWeek();
     await loadPlan();
@@ -404,6 +403,9 @@ function checkPassword(overlay, mode) {
         overlay.style.opacity = '0';
         setTimeout(() => {
             overlay.style.display = 'none';
+            // Event-Listener und UI nach dem Ausblenden des Overlays initialisieren
+            initializeEventListeners();
+            updateUI();
         }, 500);
 
         if (mode === 'editor' && !isEditorMode()) {
