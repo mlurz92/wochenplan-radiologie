@@ -15,6 +15,7 @@ body {
     color: var(--text-color);
     margin: 0;
     padding: 0;
+    font-size: 16px;
 }
 
 .wrapper {
@@ -28,7 +29,7 @@ nav {
     justify-content: space-between;
     align-items: center;
     background-color: var(--card-color);
-    padding: 10px 20px;
+    padding: 15px 20px;
     border-radius: 8px;
     margin-bottom: 20px;
 }
@@ -79,11 +80,12 @@ button {
     background-color: var(--accent-color);
     color: white;
     border: none;
-    padding: 8px 12px;
+    padding: 10px 15px;
     border-radius: 4px;
     cursor: pointer;
     font-size: 14px;
     margin: 0 5px;
+    transition: opacity 0.3s ease;
 }
 
 button:hover {
@@ -153,6 +155,7 @@ button.unsaved {
     padding: 10px 20px;
     border-radius: 4px;
     cursor: pointer;
+    transition: opacity 0.3s ease;
 }
 
 #submit-password:hover {
@@ -187,12 +190,13 @@ button.unsaved {
 .staff-list-items li {
     background-color: var(--staff-item-background);
     margin: 5px 0;
-    padding: 5px 10px;
+    padding: 8px 12px;
     border-radius: 10px;
     cursor: move;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    font-size: 14px;
 }
 
 .staff-list-items li.assigned {
@@ -242,7 +246,7 @@ button.unsaved {
     max-width: 450px;
     background-color: var(--card-color);
     border-radius: 8px;
-    padding: 12px;
+    padding: 15px;
     position: relative;
     overflow: hidden;
     border: 2px solid transparent;
@@ -258,11 +262,11 @@ button.unsaved {
 
 .workplace-card h2, .status-card h2 {
     margin-top: 0;
-    font-size: 16px;
+    font-size: 18px;
 }
 
 .staff-list h3 {
-    font-size: 14px;
+    font-size: 16px;
     margin: 10px 0 5px;
 }
 
@@ -304,6 +308,7 @@ button.unsaved {
     border-radius: 4px;
     padding: 10px;
     resize: vertical;
+    font-size: 14px;
 }
 
 #daily-notes-content {
@@ -335,6 +340,20 @@ button.unsaved {
     flex-wrap: wrap;
     gap: 10px;
     padding: 20px;
+}
+
+/* Dropdown-Menü für Wochentage */
+#day-selector {
+    display: none; /* Standardmäßig ausgeblendet */
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    background-color: var(--accent-color);
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    width: auto;
+    margin: 0 5px;
 }
 
 /* Responsive Design */
@@ -386,13 +405,39 @@ button.unsaved {
         margin-bottom: 10px;
     }
 
-    #main-container {
-        flex-direction: column;
+    /* Tagesbuttons ausblenden */
+    .nav-right {
+        display: none;
     }
 
-    #staff-pool {
-        width: auto;
+    /* Dropdown-Menü anzeigen */
+    #day-selector {
+        display: block;
+        width: 100%;
+        margin-bottom: 10px;
+    }
+
+    /* Workplan-Area zentrieren */
+    #workplan-area {
+        padding: 10px;
+    }
+
+    /* Karten anpassen */
+    #workplace-cards, #additional-status-cards {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .workplace-card, .status-card {
+        width: 100%;
         margin-bottom: 20px;
+    }
+
+    /* Button-Bereich anpassen */
+    #button-area {
+        flex-direction: column;
+        align-items: center;
     }
 }
 
@@ -408,5 +453,16 @@ button.unsaved {
     button {
         padding: 6px 12px;
         font-size: 12px;
+    }
+
+    /* Kartenbreite anpassen */
+    .workplace-card, .status-card {
+        width: 100%;
+        margin-bottom: 15px;
+    }
+
+    /* Tagesnotizen ausblenden in der Viewer-Ansicht */
+    body.viewer-mode #daily-notes-content {
+        display: none;
     }
 }
