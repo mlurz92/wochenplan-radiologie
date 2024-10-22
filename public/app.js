@@ -26,6 +26,7 @@ let currentNotes = '';
 document.addEventListener('DOMContentLoaded', async () => {
     checkBrowserCompatibility();
     initializeWeekPicker(); // Diese Funktion ist jetzt leer
+    initializeEventListeners();
     if (isEditorMode()) {
         initializeWorkplaceCards();
         initializeStatusCards();
@@ -95,7 +96,7 @@ function getDateRange(year, week) {
 function getDateOfISOWeek(year, week) {
     const simple = new Date(year, 0, 1 + (week - 1) * 7);
     const dow = simple.getDay();
-    const ISOweekStart = simple;
+    const ISOweekStart = new Date(simple);
     if (dow <= 4)
         ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
     else
@@ -491,7 +492,6 @@ function savePlanToLocalStorage() {
     checkForUnsavedChanges(); // Überprüfung nach dem Speichern
 }
 
-
 // Plan aus dem Local Storage laden
 function loadPlanFromLocalStorage() {
     const key = `plan_${currentWeek.year}_KW${currentWeek.week}`;
@@ -837,6 +837,11 @@ function updateDayButtons() {
             button.removeAttribute('aria-current');
         }
     });
+
+    const daySelector = document.getElementById('day-selector');
+    if (daySelector) {
+        daySelector.value = currentDay.toString();
+    }
 }
 
 // Event Listener initialisieren
@@ -849,12 +854,20 @@ function initializeEventListeners() {
         changeWeek(1);
     });
 
+    // Event Listener für Tagesbuttons
     const dayButtons = document.querySelectorAll('.day-button');
     dayButtons.forEach(button => {
         button.addEventListener('click', () => {
             currentDay = parseInt(button.getAttribute('data-day'));
             updateUI();
         });
+    });
+
+    // Event Listener für Dropdown-Menü
+    const daySelector = document.getElementById('day-selector');
+    daySelector.addEventListener('change', () => {
+        currentDay = parseInt(daySelector.value);
+        updateUI();
     });
 
     document.addEventListener('keydown', handleKeyNavigation);
@@ -904,11 +917,7 @@ function initializeEventListeners() {
     initializeNotesEventListeners();
 }
 
-function promptForEditorPassword() {
-    showPasswordOverlay('editor');
-}
-
-// Woche ändern
+// Funktion zum Wechseln der Woche
 async function changeWeek(offset) {
     if (isEditorMode()) {
         // Speichern des aktuellen Plans im Local Storage
@@ -1007,7 +1016,7 @@ function exportAsPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('landscape', 'mm', 'a4');
 
-    const days = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+    const daysFull = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
     const dateRange = getDateRange(currentWeek.year, currentWeek.week);
 
     // Funktion zum Konvertieren von RGBA zu RGB
@@ -1041,7 +1050,7 @@ function exportAsPDF() {
         doc.setFontSize(12);
         doc.setTextColor(0);
         let xOffset = 10;
-        days.forEach((dayName, index) => {
+        daysFull.forEach((dayName, index) => {
             if (index + 1 === day) {
                 doc.setFillColor(150, 150, 150);
                 doc.rect(xOffset - 2, 0, doc.getTextWidth(dayName) + 4, 15, 'F');
@@ -1059,7 +1068,7 @@ function exportAsPDF() {
 
         doc.setFontSize(16);
         doc.setTextColor(0);
-        doc.text(`Arbeitsplatzverteilung für ${days[day - 1]}, ${formattedDate}`, 10, 25);
+        doc.text(`Arbeitsplatzverteilung für ${daysFull[day - 1]}, ${formattedDate}`, 10, 25);
 
         let yPosition = 35;
         let xPosition = 10;
@@ -1203,7 +1212,7 @@ function exportAsPDF() {
     })();
 }
 
-// Wochenende oder Feiertag prüfen
+// Wochenende oder Feiertage prüfen
 async function checkWeekendOrHoliday() {
     const date = getDateForWeekAndDay(currentWeek.year, currentWeek.week, currentDay);
     const isSpecialDay = await isWeekendOrHoliday(date);
