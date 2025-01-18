@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wochenplan Radiologie</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style_index.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap">
+    <script src="js/app.js" defer></script>
+    <script src="js/index.js" defer></script>
+</head>
+<body>
+    <div class="overlay" id="password-overlay-index">
+        <div class="password-modal">
+            <h2>Passwort eingeben</h2>
+            <input type="password" id="password-index-input" placeholder="Passwort">
+            <input type="checkbox" id="remember-password-index">
+            <label for="remember-password-index">Passwort für 72h merken</label>
+            <button id="password-submit-index">Entsperren</button>
+        </div>
+    </div>
+
+    <header>
+        <nav>
+            <div class="title-area">
+                <h1 id="title">Wochenplan</h1>
+                <span id="current-kw">KW </span>
+            </div>
+            <div class="arrow-buttons">
+                <button id="prevWeek"><img src="img/left_arrow.svg" alt="Vorherige Woche"></button>
+                <button id="nextWeek"><img src="img/right_arrow.svg" alt="Nächste Woche"></button>
+            </div>
+            <div class="weekday-buttons">
+                <button class="weekday-button" id="weekday-mo">Mo</button>
+                <button class="weekday-button" id="weekday-di">Di</button>
+                <button class="weekday-button" id="weekday-mi">Mi</button>
+                <button class="weekday-button" id="weekday-do">Do</button>
+                <button class="weekday-button" id="weekday-fr">Fr</button>
+                <button class="weekday-button" id="weekday-sa">Sa</button>
+                <button class="weekday-button" id="weekday-so">So</button>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <div class="plan-area">
+            <div class="arbeitsplatz-karten">
+            </div>
+            <div class="zusatzstatus-karten">
+            </div>
+        </div>
+        <div class="notizen-bereich">
+          <textarea id="notes-viewer" readonly></textarea>
+        </div>
+        <div class="button-area">
+            <button id="bearbeiten">Bearbeiten</button>
+        </div>
+    </main>
+
+    <div class="overlay" id="password-overlay-editor" style="display: none;">
+        <div class="password-modal">
+            <h2>Passwort eingeben</h2>
+            <input type="password" id="password-editor-input" placeholder="Passwort">
+            <input type="checkbox" id="remember-password-editor">
+            <label for="remember-password-editor">Passwort für 72h merken</label>
+            <button id="password-submit-editor">Weiter zu Editor</button>
+        </div>
+    </div>
+</body>
+</html>

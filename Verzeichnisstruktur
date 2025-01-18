@@ -1,0 +1,27 @@
+/wochenplan-radiologie
+├── /data
+│   └── wochenplan.db
+├── /node_modules
+├── /public
+│   ├── /css
+│   │   ├── style.css
+│   │   └── style_index.css
+│   │   └── style_editor.css
+│   │   └── style_print.css
+│   ├── /img
+│   │   ├── left_arrow.svg
+│   │   └── right_arrow.svg
+│   │   └── check.svg
+│   │   └── cross.svg
+│   ├── /js
+│   │   ├── app.js
+│   │   ├── editor.js
+│   │   ├── index.js
+│   │   └── wochenuebersicht.js
+│   ├── editor.html
+│   ├── index.html
+│   └── wochenuebersicht.html
+├── .gitignore
+├── package-lock.json
+├── package.json
+└── server.js

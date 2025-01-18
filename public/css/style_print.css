@@ -1,0 +1,91 @@
+/* Verstecken von unnötigen Elementen */
+header,
+.button-area,
+.mitarbeiter-leiste,
+.arrow-buttons,
+.weekday-buttons,
+.notizen-bereich,
+.delete-icon {
+    display: none !important;
+}
+
+/* Anpassen des Layouts */
+body {
+    display: block;
+    font-family: 'Roboto', sans-serif;
+    color: black;
+    background-color: white;
+}
+
+.plan-area {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    width: 100%;
+    margin-bottom: 20px;
+    page-break-inside: avoid; /* Verhindert Seitenumbruch innerhalb des Bereichs */
+}
+
+.arbeitsplatz-karten, .zusatzstatus-karten {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5mm; /* Größerer Abstand für bessere Druckansicht */
+    justify-content: flex-start;
+}
+
+.arbeitsplatz-karten {
+    flex: 2;
+}
+
+.zusatzstatus-karten {
+    flex: 1;
+}
+
+.arbeitsplatz-karten .arbeitsplatzkarte, .zusatzstatus-karten .zusatzstatuskarte {
+    page-break-inside: avoid; /* Verhindert Seitenumbruch innerhalb der Karten */
+    background-color: white;
+    padding: 5mm; /* Größeres Padding für bessere Druckansicht */
+    border-radius: 5px;
+    box-shadow: none;
+    width: calc(50% - 5mm) !important; /* Angepasste Breite */
+    box-sizing: border-box;
+    border: 1px solid black;
+}
+
+/* Anpassen der Schriftgrößen */
+h3 {
+    font-size: 14pt;
+}
+
+li, .counter, .password-modal label {
+    font-size: 12pt;
+}
+
+/* Wochenübersicht */
+body > main > h1 + #wochenuebersicht-tabelle {
+    width: 95%;
+    margin: 20px auto;
+    border-collapse: collapse;
+    text-align: center;
+    page-break-before: always; /* Fügt einen Seitenumbruch vor der Tabelle ein */
+}
+
+body > main > h1 + #wochenuebersicht-tabelle th, body > main > h1 + #wochenuebersicht-tabelle td {
+    border: 1px solid black;
+    padding: 5px;
+    background-color: white;
+    color: black;
+    font-size: 10pt;
+}
+
+body > main > h1 + #wochenuebersicht-tabelle th {
+    background-color: #f2f2f2;
+}
+
+/* Dynamische Farbcodierung */
+.arbeitsplatzkarte.rot, .zusatzstatuskarte.rot,
+.arbeitsplatzkarte.gelb, .zusatzstatuskarte.gelb,
+.arbeitsplatzkarte.gruen, .zusatzstatuskarte.gruen {
+    background-color: #f2f2f2;
+    animation: none; /* Deaktiviert die Animation */
+}

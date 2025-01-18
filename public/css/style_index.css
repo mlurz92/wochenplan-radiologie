@@ -1,0 +1,65 @@
+/* Passwort-Overlay index.html */
+#password-overlay-index {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#password-overlay-index .password-modal {
+    background: rgba(68, 68, 68, 0.8);
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    text-align: center;
+}
+
+#password-overlay-index .password-modal input[type="password"] {
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    margin: 10px 0;
+    font-family: 'Roboto', sans-serif;
+    font-size: 1rem;
+    color: #282828;
+    width: 80%;
+}
+
+#password-overlay-index .password-modal label {
+    display: block;
+    margin-top: 10px;
+    color: #eee;
+}
+
+/* Styling für Checkbox */
+#password-overlay-index .password-modal input[type="checkbox"] {
+    margin-top: 10px;
+}
+
+/* Styling für Button */
+#password-overlay-index .password-modal button {
+    margin-top: 20px;
+    background: rgba(255, 255, 255, 0.4);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-family: 'Roboto', sans-serif;
+    font-size: 1rem;
+    color: #282828;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#password-overlay-index .password-modal button:hover {
+    background: rgba(255, 255, 255, 0.7);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}

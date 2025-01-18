@@ -1,0 +1,156 @@
+/* Arbeitsplatzkarten */
+.arbeitsplatz-karten .arbeitsplatzkarte, .zusatzstatus-karten .zusatzstatuskarte {
+    background: rgba(68, 68, 68, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 10px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    width: calc(50% - 20px); /* 50% der Breite minus Abstand und Padding */
+    box-sizing: border-box;
+}
+
+.arbeitsplatz-karten .arbeitsplatzkarte {
+    display: flex;
+    flex-direction: column;
+}
+
+.arbeitsplatz-karten .arbeitsplatzkarte h3 {
+    margin-top: 0;
+    margin-bottom: 5px;
+    font-size: 1.1rem;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.arbeitsplatz-karten .arbeitsplatzkarte .counter {
+    background-color: rgba(255, 255, 255, 0.4);
+    border-radius: 10px;
+    padding: 2px 8px;
+    font-size: 0.9rem;
+    color: #282828;
+}
+
+.arbeitsplatz-karten .arbeitsplatzkarte ul {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 10px;
+}
+
+.arbeitsplatz-karten .arbeitsplatzkarte li {
+    background: rgba(255, 255, 255, 0.7);
+    color: #282828;
+    padding: 5px 10px;
+    margin-bottom: 5px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 5px;
+}
+
+.arbeitsplatz-karten .arbeitsplatzkarte li .delete-icon {
+    cursor: pointer;
+    color: #282828;
+    font-weight: bold;
+}
+
+/* Zusatzstatuskarten */
+.zusatzstatus-karten .zusatzstatuskarte {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.zusatzstatus-karten .zusatzstatuskarte h3 {
+    margin-top: 0;
+    margin-bottom: 5px;
+    font-size: 1.1rem;
+    text-align: center;
+}
+
+.zusatzstatus-karten .zusatzstatuskarte ul {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 10px;
+    width: 100%;
+}
+
+.zusatzstatus-karten .zusatzstatuskarte li {
+    background: rgba(255, 255, 255, 0.7);
+    color: #282828;
+    padding: 5px 10px;
+    margin-bottom: 5px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    width: calc(100% - 20px);
+}
+
+.zusatzstatus-karten .zusatzstatuskarte li .delete-icon {
+    cursor: pointer;
+    color: #282828;
+    font-weight: bold;
+}
+
+/* Gemeinsame Stile für Karten */
+.arbeitsplatzkarte.rot, .zusatzstatuskarte.rot {
+    animation: pulse-red 2s infinite;
+}
+
+.arbeitsplatzkarte.gelb, .zusatzstatuskarte.gelb {
+    animation: pulse-yellow 2s infinite;
+}
+
+.arbeitsplatzkarte.gruen, .zusatzstatuskarte.gruen {
+    animation: pulse-green 2s infinite;
+}
+
+/* Pulsierende Animationen */
+@keyframes pulse-red {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 105, 107, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(255, 105, 107, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 105, 107, 0);
+    }
+}
+
+@keyframes pulse-yellow {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 247, 123, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(255, 247, 123, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 247, 123, 0);
+    }
+}
+
+@keyframes pulse-green {
+    0% {
+        box-shadow: 0 0 0 0 rgba(151, 255, 109, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(151, 255, 109, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(151, 255, 109, 0);
+    }
+}
+
+.zusatzstatus-karten .zusatzstatuskarte .mitarbeiter-liste{
+  width: 100%;
+  text-align: center;
+}
+
+.zusatzstatus-karten .zusatzstatuskarte .mitarbeiter-liste li{
+  text-align: center;
+}
